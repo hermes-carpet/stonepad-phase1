@@ -17,8 +17,7 @@ void main() async {
     for (final obj in result.objects) {
       debugPrint('  key=${obj.key}, eTag=${obj.eTag}, size=${obj.size}');
     }
-  } catch (e, _) {
+  } catch (e) {
     debugPrint('ERROR: $e');
-    debugPrint('$stack');
   }
 }
