@@ -9,7 +9,7 @@
 library;
 
 import 'dart:io';
-import 'vault_manager.dart';
+import '../services/vault_manager.dart';
 
 class StonepadPaths {
   StonepadPaths._();
