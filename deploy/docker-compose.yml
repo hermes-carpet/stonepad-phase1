@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   stonepad-server:
-    image: ghcr.io/hermes-carpet/stonepad-server:main
+    image: ghcr.io/hermes-carpet/stonepad-server:latest
     container_name: stonepad-server
     restart: unless-stopped
     ports:
