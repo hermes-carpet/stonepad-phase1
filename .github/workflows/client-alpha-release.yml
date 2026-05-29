@@ -39,39 +39,37 @@ jobs:
         id: version
         run: |
           VER=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "Full version: $VER"
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "pubspec version: $VER"
 
-      - name: Compute alpha tag
+      - name: Compute tag
         id: tag
         run: |
           SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
-          TAG="v${{ steps.version.outputs.version }}-alpha.${SHORT_SHA}"
+          TAG="v${{ steps.version.outputs.ver }}-${SHORT_SHA}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Alpha tag: $TAG"
+          echo "tag=$TAG"
 
       - run: flutter pub get
 
-      - name: Build APK (versionCode = CI run_number, always increasing)
+      - name: Build APK
         run: |
           flutter build apk --release \
-            --build-name="${{ steps.tag.outputs.tag }}" \
             --build-number=${{ github.event.workflow_run.run_number }}
 
       - name: Publish alpha release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Stonepad Client ${{ steps.tag.outputs.tag }}"
+          name: "Stonepad ${{ steps.tag.outputs.tag }}"
           body: |
-            ⚠️ **Alpha release** — auto-published from successful CI on `main`.
+            ⚠️ **Pre-release** — auto-published from CI on `main`.
 
             | | |
             |---|---|
-            | Commit | `${{ github.event.workflow_run.head_sha }}` |
-            | Version name | `${{ steps.tag.outputs.tag }}` |
+            | Version | `${{ steps.version.outputs.ver }}` |
             | Version code | `${{ github.event.workflow_run.run_number }}` |
-            | Triggered by | [${{ github.event.workflow_run.name }} #${{ github.event.workflow_run.run_number }}](${{ github.event.workflow_run.html_url }}) |
+            | Commit | `${{ github.event.workflow_run.head_sha }}` |
 
             **Install**: Download the APK and sideload on Android.
           prerelease: true
