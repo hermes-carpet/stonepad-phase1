@@ -10,11 +10,15 @@
 ///   Info.plist, this path is visible and accessible in the iOS Files app.
 ///
 /// **Desktop**: Uses `$HOME/.local/share/stonepad/` — no picker, no prefs.
+///
+/// **Test**: Falls back to a temp directory when `SharedPreferences` platform
+///   channel is not available (no `MissingPluginException` crash).
 library;
 
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,10 +28,8 @@ class VaultManager {
   /// Call when the app starts up. Returns the vault path, or null if Android
   /// needs the user to pick a folder first.
   static Future<String?> getOrCreateVaultPath() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedPath = prefs.getString(_keyVaultPath);
-
-    // Path already configured — use it.
+    // Check for saved path (with test-environment fallback).
+    final savedPath = await _getSavedPath();
     if (savedPath != null && savedPath.isNotEmpty) {
       return savedPath;
     }
@@ -40,14 +42,14 @@ class VaultManager {
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
-      await prefs.setString(_keyVaultPath, path);
+      await _savePath(path);
       return path;
     }
 
     // iOS: app documents directory — visible in Files app automatically.
     if (Platform.isIOS) {
       final directory = await getApplicationDocumentsDirectory();
-      await prefs.setString(_keyVaultPath, directory.path);
+      await _savePath(directory.path);
       return directory.path;
     }
 
@@ -64,8 +66,7 @@ class VaultManager {
       );
 
       if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_keyVaultPath, selectedDirectory);
+        await _savePath(selectedDirectory);
         return selectedDirectory;
       }
     } catch (e) {
@@ -76,7 +77,32 @@ class VaultManager {
 
   /// Reset the vault path (e.g., when changing folders).
   static Future<void> clearVaultPath() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyVaultPath);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyVaultPath);
+    } on MissingPluginException {
+      // Test environment — nothing to clear.
+    }
+  }
+
+  /// Get saved path with test-environment fallback.
+  static Future<String?> _getSavedPath() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keyVaultPath);
+    } on MissingPluginException {
+      // Test environment — no SharedPreferences, fall through to temp.
+      return null;
+    }
+  }
+
+  /// Save path with test-environment fallback.
+  static Future<void> _savePath(String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyVaultPath, path);
+    } on MissingPluginException {
+      // Test environment — path is resolved per-call, no persistence needed.
+    }
   }
 }
