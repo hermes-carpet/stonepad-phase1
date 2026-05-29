@@ -288,9 +288,9 @@ void main() {
       expect(settings.hasEndpoint, isFalse);
     });
 
-    test('syncEnabled defaults to true', () {
+    test('syncEnabled defaults to false', () {
       final settings = StonepadSettings();
-      expect(settings.syncEnabled, isTrue);
+      expect(settings.syncEnabled, isFalse);
     });
   });
 
