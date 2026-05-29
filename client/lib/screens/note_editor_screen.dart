@@ -104,14 +104,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         maxLines: null,
         expands: true,
         textAlignVertical: TextAlignVertical.top,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
-          height: 1.6,
-          fontFamily: 'monospace',
+          height: 1.7,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           border: InputBorder.none,
           hintText: 'Start writing markdown...\n\n# Heading 1\n## Heading 2\n**bold** *italic*\n- list item\n[link](url)',
+          hintStyle: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+          ),
         ),
       ),
     );
