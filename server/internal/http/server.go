@@ -81,6 +81,12 @@ func (s *Server) registerRoutes() {
 
 	// S3-compatible endpoints — authenticated via Sig V4
 	if s.cfg.S3EndpointEnabled {
+		// Root-level S3 (standard path — required for SDK compatibility).
+		// These use a catch-all with manual path routing to avoid conflicts
+		// with native API routes under /api/.
+		s.mux.HandleFunc("GET /{$}", s.wrapS3Auth(s.s3Handler.HandleListBuckets))
+		s.mux.HandleFunc("/", s.routeS3OrNative)
+		// Also keep /s3/ prefixed routes for explicit access
 		s.mux.HandleFunc("GET /s3/", s.wrapS3Auth(s.s3Handler.HandleListBuckets))
 		s.mux.HandleFunc("GET /s3/{bucket}", s.wrapS3Auth(s.s3Handler.HandleListObjects))
 		s.mux.HandleFunc("HEAD /s3/{bucket}/{key...}", s.wrapS3Auth(s.s3Handler.HandleHeadObject))
@@ -365,4 +371,40 @@ func writeJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 // GenerateRequestID creates a unique request ID for logging.
 func GenerateRequestID() string {
 	return uuid.New().String()
+}
+
+// routeS3OrNative dispatches non-api paths to S3 handlers and api paths to native handlers.
+// This allows standard S3 SDKs (which use root-level paths) to work alongside the native API.
+func (s *Server) routeS3OrNative(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+
+	// Native API routes already handled by specific patterns — this catch-all
+	// only fires for paths that didn't match any specific route.
+	// Route everything else as S3.
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 0 || (len(parts) == 1 && parts[0] == "") {
+		// GET / — ListBuckets
+		s.wrapS3Auth(s.s3Handler.HandleListBuckets)(w, r)
+		return
+	}
+	if len(parts) == 1 {
+		// GET /{bucket} — ListObjects
+		s.wrapS3Auth(s.s3Handler.HandleListObjects)(w, r)
+		return
+	}
+	// GET|PUT|DELETE /{bucket}/{key...}
+	switch r.Method {
+	case "GET", "HEAD":
+		if r.Method == "HEAD" {
+			s.wrapS3Auth(s.s3Handler.HandleHeadObject)(w, r)
+		} else {
+			s.wrapS3Auth(s.s3Handler.HandleGetObject)(w, r)
+		}
+	case "PUT":
+		s.wrapS3Auth(s.s3Handler.HandlePutObject)(w, r)
+	case "DELETE":
+		s.wrapS3Auth(s.s3Handler.HandleDeleteObject)(w, r)
+	default:
+		http.NotFound(w, r)
+	}
 }
