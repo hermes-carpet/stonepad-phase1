@@ -267,6 +267,7 @@ func (h *S3Handler) ListObjectsForBucket(bucket string) http.HandlerFunc {
 			return
 		}
 		prefix := r.URL.Query().Get("prefix")
+		delimiter := r.URL.Query().Get("delimiter")
 		maxKeysStr := r.URL.Query().Get("max-keys")
 		maxKeys := s3.DefaultMaxKeys
 		if maxKeysStr != "" {
@@ -281,6 +282,7 @@ func (h *S3Handler) ListObjectsForBucket(bucket string) http.HandlerFunc {
 		}
 		opts := s3.ListObjectsOpts{
 			Prefix:            prefix,
+			Delimiter:         delimiter,
 			MaxKeys:           maxKeys,
 			ContinuationToken: r.URL.Query().Get("continuation-token"),
 		}
