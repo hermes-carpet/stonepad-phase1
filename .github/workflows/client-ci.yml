@@ -67,6 +67,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - run: flutter clean
       - run: flutter pub get
       - name: Build APK
         run: flutter build apk --release --build-number=$(date +%s)
