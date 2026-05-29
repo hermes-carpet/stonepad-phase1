@@ -61,7 +61,7 @@ type Object struct {
 
 // CommonPrefix represents a directory-like prefix in ListObjectsV2.
 type CommonPrefix struct {
-	Prefix string `xml:"Prefix"`
+	Prefix string `xml:",chardata"`
 }
 
 // --- Errors ---
