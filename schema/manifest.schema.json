@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Stonepad Manifest",
+  "description": "Client-side manifest tracking note metadata and sync state.",
+  "type": "object",
+  "required": ["version", "workspace_id", "notes"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Manifest format version. Must be 1 for v1.",
+      "const": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "description": "Workspace identifier."
+    },
+    "last_sync_attempt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of last sync attempt."
+    },
+    "last_sync_success": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of last successful sync."
+    },
+    "notes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["content_hash", "size_bytes", "local_modified", "last_synced_hash", "last_synced_at", "status"],
+        "properties": {
+          "content_hash": {
+            "type": "string",
+            "description": "SHA-256 of current local file content (lowercase hex)."
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "local_modified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_synced_hash": {
+            "type": "string",
+            "description": "SHA-256 that was last synced to server."
+          },
+          "last_synced_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["synced", "modified", "deleted", "conflict_pending"]
+          }
+        }
+      }
+    }
+  }
+}

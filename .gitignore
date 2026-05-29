@@ -1,0 +1,52 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+server/vendor/
+*.prof
+
+# Flutter
+client/.dart_tool/
+client/.packages
+client/build/
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
+client/.pub-cache/
+client/.pub/
+client/android/.gradle/
+client/android/app/build/
+client/android/local.properties
+client/ios/Pods/
+client/ios/.symlinks/
+client/ios/Flutter/Flutter.framework
+client/ios/Flutter/Flutter.podspec
+client/linux/build/
+client/macos/build/
+client/web/build/
+client/windows/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets (never commit these)
+server/credentials.txt
+/data/
