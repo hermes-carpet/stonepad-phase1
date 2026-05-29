@@ -2,7 +2,7 @@
 
 **Self-hostable markdown notes with mobile sync.** Notes are plain `.md` files on your phone. Sync them to your own server — or don't. Works standalone.
 
-[![CI](https://github.com/hermes-carpet/stonepad-phase1/actions/workflows/server-ci.yml/badge.svg)](https://github.com/hermes-carpet/stonepad-phase1/actions)
+[![CI](https://github.com/hermes-carpet/stonepad/actions/workflows/server-ci.yml/badge.svg)](https://github.com/hermes-carpet/stonepad/actions)
 
 ---
 
