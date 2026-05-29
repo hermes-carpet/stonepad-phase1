@@ -1,4 +1,4 @@
-name: Server Alpha Release
+name: Server Pre-release
 
 on:
   workflow_run:
@@ -10,8 +10,8 @@ env:
   GO_VERSION: '1.26'
 
 jobs:
-  alpha-release:
-    name: Build and Publish Alpha Binary
+  pre-release:
+    name: Build and Publish Pre-release
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
     permissions:
@@ -34,39 +34,38 @@ jobs:
         run: |
           VER=$(cat VERSION)
           echo "version=$VER" >> $GITHUB_OUTPUT
-          echo "Full version: $VER"
+          echo "Version: $VER"
 
-      - name: Compute alpha tag
+      - name: Compute tag
         id: tag
         run: |
-          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
-          TAG="v${{ steps.version.outputs.version }}-alpha.${SHORT_SHA}"
+          TAG="v${{ steps.version.outputs.version }}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Alpha tag: $TAG"
+          echo "Tag: $TAG"
 
       - name: Build multi-arch binaries
         run: |
           mkdir -p /tmp/release
           for ARCH in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go build \
-              -ldflags="-w -s -X main.version=${{ steps.version.outputs.version }}-alpha" \
+              -ldflags="-w -s -X main.version=${{ steps.version.outputs.version }}" \
               -o /tmp/release/stonepad-server_linux_$ARCH ./cmd/stonepad-server
           done
           echo "Built binaries:"
           ls -lh /tmp/release/
 
-      - name: Publish alpha release
+      - name: Publish pre-release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: "Stonepad Server ${{ steps.tag.outputs.tag }}"
           body: |
-            ⚠️ **Alpha release** — auto-published from successful CI on `main`.
+            ⚠️ **Pre-release** — auto-published from successful CI on `main`.
 
             | | |
             |---|---|
+            | Version | `${{ steps.version.outputs.version }}` |
             | Commit | `${{ github.event.workflow_run.head_sha }}` |
-            | Base version | `${{ steps.version.outputs.version }}` |
             | Triggered by | [${{ github.event.workflow_run.name }} #${{ github.event.workflow_run.run_number }}](${{ github.event.workflow_run.html_url }}) |
 
             ### Binaries
