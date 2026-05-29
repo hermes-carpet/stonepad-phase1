@@ -36,7 +36,22 @@ jobs:
           echo "version=$VER" >> $GITHUB_OUTPUT
           echo "Version: $VER"
 
+      - name: Check if pre-release version
+        id: check
+        run: |
+          VER="${{ steps.version.outputs.version }}"
+          MAJOR=$(echo "$VER" | cut -d. -f1)
+          MINOR=$(echo "$VER" | cut -d. -f2)
+          if [ "$MAJOR" -eq 0 ] && [ "$MINOR" -lt 5 ]; then
+            echo "pre_release=true" >> $GITHUB_OUTPUT
+            echo "Pre-release version ($VER) — will publish"
+          else
+            echo "pre_release=false" >> $GITHUB_OUTPUT
+            echo "Stable version ($VER) — skipping pre-release"
+          fi
+
       - name: Compute tag
+        if: steps.check.outputs.pre_release == 'true'
         id: tag
         run: |
           TAG="v${{ steps.version.outputs.version }}"
@@ -44,6 +59,7 @@ jobs:
           echo "Tag: $TAG"
 
       - name: Build multi-arch binaries
+        if: steps.check.outputs.pre_release == 'true'
         run: |
           mkdir -p /tmp/release
           for ARCH in amd64 arm64; do
@@ -55,6 +71,7 @@ jobs:
           ls -lh /tmp/release/
 
       - name: Publish pre-release
+        if: steps.check.outputs.pre_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
