@@ -61,7 +61,7 @@ class VaultManager {
   /// or null if the user cancelled.
   static Future<String?> pickAndroidFolder() async {
     try {
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      final selectedDirectory = await FilePicker.getDirectoryPath(
         dialogTitle: 'Choose where to store your notes',
       );
 
