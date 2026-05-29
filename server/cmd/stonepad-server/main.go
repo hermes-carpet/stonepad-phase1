@@ -20,6 +20,7 @@ import (
 	"github.com/hermes-carpet/stonepad/server/internal/s3"
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
+	"github.com/hermes-carpet/stonepad/server/internal/tmpfs"
 )
 
 // version is set at build time via -ldflags.
@@ -49,17 +50,34 @@ func main() {
 	}
 
 	// Initialize storage backend
-	if cfg.StorageMode != "direct" {
-		logger.Error("unsupported storage mode (tmpfs not yet implemented)", "mode", cfg.StorageMode)
-		os.Exit(1)
-	}
+	var store storage.Storage
+	var err error
 
-	store, err := storage.NewFilesystemStorage(cfg.DataDir, cfg.WorkspaceID)
-	if err != nil {
-		logger.Error("initializing storage", "error", err)
+	switch cfg.StorageMode {
+	case "direct":
+		store, err = storage.NewFilesystemStorage(cfg.DataDir, cfg.WorkspaceID)
+		if err != nil {
+			logger.Error("initializing storage", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("storage initialized", "mode", "direct", "base_path", store.BasePath())
+	case "tmpfs":
+		store, err = storage.NewFilesystemStorage(cfg.DataDir, cfg.WorkspaceID)
+		if err != nil {
+			logger.Error("initializing tmpfs storage", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("storage initialized", "mode", "tmpfs", "base_path", store.BasePath())
+
+		// Ensure persist directory exists
+		if err := os.MkdirAll(cfg.TmpfsPersistDir, 0755); err != nil {
+			logger.Error("creating tmpfs persist directory", "error", err)
+			os.Exit(1)
+		}
+	default:
+		logger.Error("unsupported storage mode", "mode", cfg.StorageMode)
 		os.Exit(1)
 	}
-	logger.Info("storage initialized", "base_path", store.BasePath())
 
 	// Initialize SQLite metadata store
 	dbPath := fmt.Sprintf("%s/meta.db", cfg.DataDir)
@@ -78,6 +96,22 @@ func main() {
 	if err := metaStore.InitUser(cfg.UserID); err != nil {
 		logger.Error("initializing user", "error", err)
 		os.Exit(1)
+	}
+
+	// tmpfs snapshot management
+	var snap *tmpfs.Snapshotter
+	if cfg.StorageMode == "tmpfs" {
+		snapInterval := time.Duration(cfg.TmpfsSnapshotInterval) * time.Second
+		snap = tmpfs.New(cfg.DataDir, cfg.TmpfsPersistDir, snapInterval, metaStore.DB(), logger)
+
+		// Restore from last snapshot (on startup)
+		if err := snap.RestoreFromPersist(); err != nil {
+			logger.Error("tmpfs restore failed", "error", err)
+			os.Exit(1)
+		}
+
+		// Start periodic snapshot loop
+		snap.Start()
 	}
 
 	// Set up authentication
@@ -123,6 +157,14 @@ func main() {
 
 	if err := httpServer.Shutdown(gracefulCtx); err != nil {
 		logger.Error("HTTP server forced to shutdown", "error", err)
+	}
+
+	// Perform final tmpfs snapshot before exit
+	if snap != nil {
+		if err := snap.FinalSnapshot(); err != nil {
+			logger.Error("tmpfs final snapshot failed", "error", err)
+		}
+		snap.Stop()
 	}
 
 	logger.Info("server stopped")
