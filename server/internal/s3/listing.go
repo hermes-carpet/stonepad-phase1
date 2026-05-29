@@ -122,14 +122,14 @@ func BuildListObjectsResult(bucket string, metas []storage.NoteMeta, opts ListOb
 	}
 
 	result := &ListBucketResult{
-		Xmlns:         "http://s3.amazonaws.com/doc/2006-03-01/",
-		Name:          bucket,
-		Prefix:        opts.Prefix,
-		KeyCount:      len(objects),
-		MaxKeys:       opts.MaxKeys,
-		IsTruncated:   isTruncated,
-		Contents:      objects,
-		CommonPrefixes: commonPrefixPtr(commonPrefixes),
+		Xmlns:                 "http://s3.amazonaws.com/doc/2006-03-01/",
+		Name:                  bucket,
+		Prefix:                opts.Prefix,
+		KeyCount:              len(objects),
+		MaxKeys:               opts.MaxKeys,
+		IsTruncated:           isTruncated,
+		Contents:              objects,
+		CommonPrefixes:        commonPrefixPtr(commonPrefixes),
 		ContinuationToken:     opts.ContinuationToken,
 		NextContinuationToken: nextToken,
 		Delimiter:             opts.Delimiter,

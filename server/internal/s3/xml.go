@@ -36,18 +36,18 @@ type Bucket struct {
 
 // ListBucketResult is the XML response for ListObjectsV2.
 type ListBucketResult struct {
-	XMLName               xml.Name       `xml:"ListBucketResult"`
-	Xmlns                 string         `xml:"xmlns,attr"`
-	Name                  string         `xml:"Name"`
-	Prefix                string         `xml:"Prefix"`
-	KeyCount              int            `xml:"KeyCount"`
-	MaxKeys               int            `xml:"MaxKeys"`
-	IsTruncated           bool           `xml:"IsTruncated"`
-	Contents              []Object       `xml:"Contents,omitempty"`
+	XMLName               xml.Name        `xml:"ListBucketResult"`
+	Xmlns                 string          `xml:"xmlns,attr"`
+	Name                  string          `xml:"Name"`
+	Prefix                string          `xml:"Prefix"`
+	KeyCount              int             `xml:"KeyCount"`
+	MaxKeys               int             `xml:"MaxKeys"`
+	IsTruncated           bool            `xml:"IsTruncated"`
+	Contents              []Object        `xml:"Contents,omitempty"`
 	CommonPrefixes        *[]CommonPrefix `xml:"CommonPrefixes>Prefix"`
-	ContinuationToken     string         `xml:"ContinuationToken,omitempty"`
-	NextContinuationToken string         `xml:"NextContinuationToken,omitempty"`
-	Delimiter             string         `xml:"Delimiter,omitempty"`
+	ContinuationToken     string          `xml:"ContinuationToken,omitempty"`
+	NextContinuationToken string          `xml:"NextContinuationToken,omitempty"`
+	Delimiter             string          `xml:"Delimiter,omitempty"`
 }
 
 // Object represents a single S3 object (note) in ListObjectsV2.
