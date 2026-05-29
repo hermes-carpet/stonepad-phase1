@@ -49,7 +49,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	authenticator := auth.NewNoneAuth(cfg.UserID)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	return NewServer(cfg, store, metaStore, authenticator, logger), dir
+	return NewServer(cfg, store, metaStore, authenticator, nil, logger), dir
 }
 
 func TestHealth(t *testing.T) {
@@ -170,7 +170,7 @@ func TestNoteRequiresAuth(t *testing.T) {
 
 	authenticator := auth.NewTokenAuth(cfg.AuthToken)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := NewServer(cfg, store, metaStore, authenticator, logger)
+	srv := NewServer(cfg, store, metaStore, authenticator, nil, logger)
 
 	// Request without auth should be rejected
 	req := httptest.NewRequest("GET", "/api/v1/manifest", nil)

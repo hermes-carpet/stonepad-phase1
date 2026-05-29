@@ -16,6 +16,7 @@ import (
 
 	"github.com/hermes-carpet/stonepad/server/internal/auth"
 	"github.com/hermes-carpet/stonepad/server/internal/config"
+	"github.com/hermes-carpet/stonepad/server/internal/s3"
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
 	"github.com/google/uuid"
@@ -23,12 +24,13 @@ import (
 
 // Server wraps the HTTP server and associated dependencies.
 type Server struct {
-	cfg       *config.Config
-	store     storage.Storage
-	metaStore *sync.MetadataStore
-	auth      auth.Authenticator
-	mux       *http.ServeMux
-	logger    *slog.Logger
+	cfg        *config.Config
+	store      storage.Storage
+	metaStore  *sync.MetadataStore
+	auth       auth.Authenticator
+	s3Handler  *S3Handler
+	mux        *http.ServeMux
+	logger     *slog.Logger
 }
 
 // NewServer creates a new Server with all dependencies wired in.
@@ -37,6 +39,7 @@ func NewServer(
 	store storage.Storage,
 	metaStore *sync.MetadataStore,
 	authenticator auth.Authenticator,
+	s3Creds []s3.Credential,
 	logger *slog.Logger,
 ) *Server {
 	s := &Server{
@@ -44,6 +47,7 @@ func NewServer(
 		store:     store,
 		metaStore: metaStore,
 		auth:      authenticator,
+		s3Handler: NewS3Handler(store, metaStore, s3Creds, cfg.WorkspaceID, cfg.MaxNoteSizeBytes),
 		mux:       http.NewServeMux(),
 		logger:    logger,
 	}
@@ -74,6 +78,16 @@ func (s *Server) registerRoutes() {
 	// Auth endpoints (users mode only)
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.handleLogin)
 	s.mux.HandleFunc("POST /api/v1/auth/logout", s.wrapAuth(s.handleLogout))
+
+	// S3-compatible endpoints — authenticated via Sig V4
+	if s.cfg.S3EndpointEnabled {
+		s.mux.HandleFunc("GET /s3/", s.wrapS3Auth(s.s3Handler.HandleListBuckets))
+		s.mux.HandleFunc("GET /s3/{bucket}", s.wrapS3Auth(s.s3Handler.HandleListObjects))
+		s.mux.HandleFunc("HEAD /s3/{bucket}/{key...}", s.wrapS3Auth(s.s3Handler.HandleHeadObject))
+		s.mux.HandleFunc("GET /s3/{bucket}/{key...}", s.wrapS3Auth(s.s3Handler.HandleGetObject))
+		s.mux.HandleFunc("PUT /s3/{bucket}/{key...}", s.wrapS3Auth(s.s3Handler.HandlePutObject))
+		s.mux.HandleFunc("DELETE /s3/{bucket}/{key...}", s.wrapS3Auth(s.s3Handler.HandleDeleteObject))
+	}
 }
 
 // wrapAuth wraps a handler with authentication middleware.
@@ -87,6 +101,18 @@ func (s *Server) wrapAuth(next http.HandlerFunc) http.HandlerFunc {
 		// Store userID in context for handlers
 		ctx := context.WithValue(r.Context(), ctxKeyUserID, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
+
+// wrapS3Auth wraps an S3 handler with Sig V4 authentication.
+func (s *Server) wrapS3Auth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := s.s3Handler.authS3Request(r)
+		if err != nil {
+			writeS3Error(w, r, "AccessDenied", err.Error(), r.URL.Path)
+			return
+		}
+		next.ServeHTTP(w, r)
 	}
 }
 

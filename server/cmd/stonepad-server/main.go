@@ -10,12 +10,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/hermes-carpet/stonepad/server/internal/auth"
 	"github.com/hermes-carpet/stonepad/server/internal/config"
 	httpsrv "github.com/hermes-carpet/stonepad/server/internal/http"
+	"github.com/hermes-carpet/stonepad/server/internal/s3"
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
 )
@@ -81,8 +83,11 @@ func main() {
 	// Set up authentication
 	authenticator := buildAuthenticator(cfg, metaStore, logger)
 
+	// Generate or load S3 credentials
+	s3Creds := loadOrGenerateCredentials(cfg, metaStore, logger)
+
 	// Build the HTTP server
-	srv := httpsrv.NewServer(cfg, store, metaStore, authenticator, logger)
+	srv := httpsrv.NewServer(cfg, store, metaStore, authenticator, s3Creds, logger)
 
 	httpServer := &http.Server{
 		Addr:         cfg.ListenAddr,
@@ -193,4 +198,62 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// loadOrGenerateCredentials loads S3 credentials from credentials.txt or
+// generates new ones on first startup.
+func loadOrGenerateCredentials(cfg *config.Config, metaStore *sync.MetadataStore, logger *slog.Logger) []s3.Credential {
+	credsPath := fmt.Sprintf("%s/credentials.txt", cfg.DataDir)
+	creds, err := readCredentialsFile(credsPath)
+	if err == nil && len(creds) > 0 {
+		logger.Info("loaded S3 credentials from file", "count", len(creds))
+		return creds
+	}
+
+	// Generate new credentials
+	cred, err := s3.GenerateCredentials(cfg.UserID)
+	if err != nil {
+		logger.Error("failed to generate S3 credentials", "error", err)
+		os.Exit(1)
+	}
+
+	// Write to credentials.txt with mode 0600
+	line := fmt.Sprintf("%s:%s:%s\n", cred.AccessKey, cred.SecretKey, cred.UserID)
+	if err := os.WriteFile(credsPath, []byte(line), 0600); err != nil {
+		logger.Error("failed to write credentials file", "error", err)
+		os.Exit(1)
+	}
+
+	logger.Info("generated new S3 credentials",
+		"access_key", cred.AccessKey,
+		"file", credsPath,
+	)
+
+	return []s3.Credential{*cred}
+}
+
+// readCredentialsFile parses the credentials.txt file.
+// Format: access_key:secret_key:user_id (one per line)
+func readCredentialsFile(path string) ([]s3.Credential, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var creds []s3.Credential
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) == 3 {
+			creds = append(creds, s3.Credential{
+				AccessKey: parts[0],
+				SecretKey: parts[1],
+				UserID:    parts[2],
+			})
+		}
+	}
+	return creds, nil
 }
