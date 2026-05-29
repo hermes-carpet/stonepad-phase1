@@ -1,6 +1,7 @@
 /// Sync state machine notifier.
 /// Manages transitions between Active, ManualOnly, NoNetwork, and Disabled.
 /// See §8.6 for the full state transition diagram.
+library;
 import 'package:flutter/foundation.dart';
 import '../models/sync_state.dart';
 import '../constants/timing.dart';

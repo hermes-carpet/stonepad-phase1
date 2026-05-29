@@ -1,6 +1,7 @@
 /// Filesystem path helpers for the client storage layout.
 /// Centralizes platform-specific path resolution so the rest of the code
 /// doesn't branch on platform. See §8.3 of the Stonepad v1 Plan.
+library;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 

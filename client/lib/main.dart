@@ -1,6 +1,7 @@
 /// Stonepad — Self-hostable markdown notes application.
 /// Mobile-first Flutter client with optional sync.
 /// See §8 of the Stonepad v1 Implementation Plan.
+library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

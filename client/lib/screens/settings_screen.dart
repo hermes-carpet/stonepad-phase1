@@ -1,5 +1,6 @@
 /// Settings screen — endpoint configuration, sync toggle, diagnostics.
 /// See §8.11 of the Stonepad v1 Implementation Plan.
+library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/settings_state.dart';

@@ -1,4 +1,5 @@
 /// Connectivity state notifier — wraps connectivity status for the UI.
+library;
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 

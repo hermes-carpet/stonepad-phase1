@@ -1,5 +1,6 @@
 /// Central state for notes — owns the in-memory manifest and
 /// the currently-opened note. Notifies listeners on changes.
+library;
 import 'package:flutter/foundation.dart';
 import '../models/manifest.dart';
 import '../models/note_entry.dart';

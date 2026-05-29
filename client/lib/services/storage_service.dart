@@ -1,6 +1,7 @@
 /// Service for reading/writing notes and manifest to local disk.
 /// All writes use atomic semantics: write to temp file, then rename.
 /// See §8.5 and §9.4 of the Stonepad v1 Implementation Plan.
+library;
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';

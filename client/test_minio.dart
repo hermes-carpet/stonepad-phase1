@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:minio/minio.dart';
 
 void main() async {
@@ -12,12 +13,12 @@ void main() async {
 
   try {
     final result = await minio.listAllObjects('default', recursive: true);
-    print('Objects: ${result.objects.length}');
+    debugPrint('Objects: ${result.objects.length}');
     for (final obj in result.objects) {
-      print('  key=${obj.key}, eTag=${obj.eTag}, size=${obj.size}');
+      debugPrint('  key=${obj.key}, eTag=${obj.eTag}, size=${obj.size}');
     }
   } catch (e, stack) {
-    print('ERROR: $e');
-    print('$stack');
+    debugPrint('ERROR: $e');
+    debugPrint('\$stack'
   }
 }

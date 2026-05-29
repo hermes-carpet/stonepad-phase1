@@ -1,4 +1,5 @@
 /// Settings state — persists user settings to settings.json.
+library;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';

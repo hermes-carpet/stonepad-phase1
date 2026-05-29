@@ -4,6 +4,7 @@
 ///
 /// Per taste skills: clean editorial layout, warm monochrome palette,
 /// generous whitespace, max 2 primary CTAs.
+library;
 import 'package:flutter/material.dart';
 import '../constants/strings.dart';
 

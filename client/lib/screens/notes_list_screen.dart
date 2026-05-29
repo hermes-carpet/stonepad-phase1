@@ -1,6 +1,7 @@
 /// Notes List Screen — Apple Notes-style folder hierarchy browser.
 /// Shows folders first, then notes alphabetically. Supports create, rename, delete.
 /// See §8.10 of the Stonepad v1 Implementation Plan.
+library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/sync_state.dart';
@@ -188,6 +189,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
 
   void _openNote(NotesState notesState, String path) {
     notesState.openNote(path).then((_) {
+      if (!context.mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -225,6 +227,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
+      if (!context.mounted) return;
       final folderPrefix = _currentFolder.isEmpty ? '' : '$_currentFolder/';
       final path = '$folderPrefix$result.md';
       final notesState = context.read<NotesState>();
@@ -257,6 +260,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
+      if (!context.mounted) return;
       final folderPrefix = _currentFolder.isEmpty ? '' : '$_currentFolder/';
       final folderPath = '$folderPrefix$result';
       // Create a .folder marker so the folder appears in subFolders().

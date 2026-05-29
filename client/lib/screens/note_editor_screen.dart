@@ -8,6 +8,7 @@
 ///   - Format toolbar (bold, italic, heading, list, code, link, table, hr)
 ///   - Markdown preview panel
 ///   - Unsaved changes indicator
+library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

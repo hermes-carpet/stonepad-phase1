@@ -1,6 +1,7 @@
 /// LifecycleService — triggers save + sync burst on app lifecycle events.
 /// Uses AppLifecycleListener. On paused, hidden, or detached,
 /// saves the current editor state. See §8.5.
+library;
 import 'package:flutter/material.dart';
 import '../state/notes_state.dart';
 import '../state/sync_state_notifier.dart';

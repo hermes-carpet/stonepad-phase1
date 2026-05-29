@@ -1,4 +1,5 @@
 /// Tests for Phase 6 — Token + Users Auth.
+library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stonepad/models/settings.dart';
 import 'package:stonepad/services/api_client.dart';

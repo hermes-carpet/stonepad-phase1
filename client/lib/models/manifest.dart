@@ -1,6 +1,7 @@
 /// Manifest model — tracks sync state of all notes in the workspace.
 /// Format is versioned; code must check the version field and refuse
 /// to load unknown versions. See §8.4.
+library;
 import 'dart:convert';
 import 'note_entry.dart';
 
@@ -62,7 +63,8 @@ class Manifest {
   }
 
   /// Serialize to a JSON string.
-  String toString() => jsonEncode(toJson());
+  @override
+  66|  String toString() => jsonEncode(toJson());
 
   /// Notes with local changes pending sync.
   List<String> get modifiedPaths =>

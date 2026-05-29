@@ -1,4 +1,5 @@
 /// Hash service — pure functions for SHA-256 hashing. No state.
+library;
 import 'dart:convert';
 import 'package:crypto/crypto.dart' as crypto;
 

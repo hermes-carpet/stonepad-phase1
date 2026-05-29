@@ -1,9 +1,9 @@
 /// Tests for SyncService — diff computation, state transitions.
+library;
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stonepad/models/note_entry.dart';
-import 'package:stonepad/models/manifest.dart';
 import 'package:stonepad/models/settings.dart';
 import 'package:stonepad/models/sync_state.dart';
 import 'package:stonepad/services/storage_service.dart';
@@ -12,8 +12,6 @@ import 'package:stonepad/state/notes_state.dart';
 import 'package:stonepad/state/sync_state_notifier.dart';
 import 'package:stonepad/state/settings_state.dart';
 import 'package:stonepad/state/connectivity_state.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
