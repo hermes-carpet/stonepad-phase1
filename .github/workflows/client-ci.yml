@@ -69,6 +69,9 @@ jobs:
           java-version: '17'
       - run: flutter clean
       - run: flutter pub get
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/stonepad.keystore
+        working-directory: client
       - name: Read version
         id: version
         run: |
@@ -76,6 +79,11 @@ jobs:
           echo "ver=$VER" >> $GITHUB_OUTPUT
       - name: Build APK
         run: flutter build apk --release --build-number=$(date +%s)
+        env:
+          KEYSTORE_PATH: stonepad.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - name: Rename APK
         run: |
           SRC=build/app/outputs/flutter-apk/app-release.apk
