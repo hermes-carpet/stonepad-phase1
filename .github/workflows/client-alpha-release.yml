@@ -53,9 +53,12 @@ jobs:
       - run: flutter pub get
 
       - name: Build APK
+        id: build
         run: |
-          flutter build apk --release \
-            --build-number=${{ github.event.workflow_run.run_number }}
+          VC=$(date +%s)
+          flutter build apk --release --build-number=$VC
+          echo "vc=$VC" >> $GITHUB_OUTPUT
+          echo "versionCode=$VC"
 
       - name: Publish alpha release
         uses: softprops/action-gh-release@v2
@@ -68,7 +71,7 @@ jobs:
             | | |
             |---|---|
             | Version | `${{ steps.version.outputs.ver }}` |
-            | Version code | `${{ github.event.workflow_run.run_number }}` |
+            | Version code | `${{ steps.build.outputs.vc }}` |
             | Commit | `${{ github.event.workflow_run.head_sha }}` |
 
             **Install**: Download the APK and sideload on Android.
