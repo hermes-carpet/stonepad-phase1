@@ -3,8 +3,11 @@
 /// See §8.10 of the Stonepad v1 Implementation Plan.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/sync_state.dart';
 import '../state/notes_state.dart';
+import '../state/sync_state_notifier.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 import 'note_editor_screen.dart';
 
 class NotesListScreen extends StatefulWidget {
@@ -39,6 +42,27 @@ class _NotesListScreenState extends State<NotesListScreen> {
                 ? const Text('Stonepad')
                 : Text(_buildBreadcrumb()),
             actions: [
+              // Sync status indicator + manual sync button
+              Consumer<SyncStateNotifier>(
+                builder: (context, syncState, _) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Sync state icon
+                      _syncStateIcon(syncState.state),
+                      // Manual sync button
+                      IconButton(
+                        icon: const Icon(Icons.sync),
+                        tooltip: 'Sync now',
+                        onPressed: () {
+                          final syncService = context.read<SyncService>();
+                          syncService.manualSync();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.create_new_folder_outlined),
                 tooltip: 'New Folder',
@@ -109,6 +133,20 @@ class _NotesListScreenState extends State<NotesListScreen> {
         return const Icon(Icons.warning, size: 16, color: Colors.red);
       default:
         return null;
+    }
+  }
+
+  /// Visual indicator for the sync state machine state.
+  Widget _syncStateIcon(SyncState state) {
+    switch (state) {
+      case SyncState.active:
+        return const Icon(Icons.cloud_done, size: 18, color: Colors.green);
+      case SyncState.manualOnly:
+        return const Icon(Icons.cloud_off, size: 18, color: Colors.orange);
+      case SyncState.noNetwork:
+        return const Icon(Icons.cloud_off, size: 18, color: Colors.grey);
+      case SyncState.disabled:
+        return const Icon(Icons.cloud_off, size: 18, color: Colors.grey);
     }
   }
 

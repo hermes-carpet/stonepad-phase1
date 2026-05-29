@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../state/settings_state.dart';
 import '../state/sync_state_notifier.dart';
 import '../state/notes_state.dart';
+import '../services/sync_service.dart';
 import '../constants/strings.dart';
 import '../constants/paths.dart';
 import 'package:flutter/services.dart';
@@ -155,6 +156,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: settings.syncEnabled,
                 onChanged: (v) {
                   settingsState.setSyncEnabled(v);
+                  context.read<SyncService>().onSyncToggle(v);
                   syncState.setSyncEnabled(v);
                 },
               ),
@@ -162,6 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: const Icon(Icons.sync),
                 label: const Text('Sync now'),
                 onPressed: () {
+                  context.read<SyncService>().manualSync();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Manual sync triggered')),
                   );

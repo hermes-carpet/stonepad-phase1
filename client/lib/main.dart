@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'constants/strings.dart';
 import 'services/storage_service.dart';
+import 'services/sync_service.dart';
 import 'services/lifecycle_service.dart';
 import 'state/notes_state.dart';
 import 'state/sync_state_notifier.dart';
@@ -64,6 +65,8 @@ class StonepadApp extends StatefulWidget {
 class _StonepadAppState extends State<StonepadApp> {
   late final NotesState _notesState;
   late final SyncStateNotifier _syncState;
+  late final ConnectivityState _connectivityState;
+  late final SyncService _syncService;
   late final LifecycleService _lifecycle;
 
   @override
@@ -71,6 +74,34 @@ class _StonepadAppState extends State<StonepadApp> {
     super.initState();
     _notesState = NotesState(widget.storageService);
     _syncState = SyncStateNotifier();
+    _connectivityState = ConnectivityState();
+
+    // Initialize sync state from settings
+    if (widget.settingsState.settings.syncEnabled) {
+      _syncState.setSyncEnabled(true);
+    } else {
+      _syncState.setSyncEnabled(false);
+    }
+
+    _syncService = SyncService(
+      notesState: _notesState,
+      syncState: _syncState,
+      connectivity: _connectivityState,
+      settingsState: widget.settingsState,
+      storage: widget.storageService,
+    );
+
+    // Start polling if sync is enabled and endpoint is configured
+    if (widget.settingsState.settings.hasEndpoint &&
+        widget.settingsState.settings.syncEnabled) {
+      _syncService.startPolling();
+    }
+
+    // Wire connectivity changes to SyncService
+    _connectivityState.addListener(() {
+      _syncService.onConnectivityChanged(_connectivityState.isConnected);
+    });
+
     _lifecycle = LifecycleService(
       notesState: _notesState,
       syncState: _syncState,
@@ -80,6 +111,7 @@ class _StonepadAppState extends State<StonepadApp> {
 
   @override
   void dispose() {
+    _syncService.dispose();
     _lifecycle.dispose();
     super.dispose();
   }
@@ -91,7 +123,8 @@ class _StonepadAppState extends State<StonepadApp> {
         ChangeNotifierProvider.value(value: _notesState),
         ChangeNotifierProvider.value(value: _syncState),
         ChangeNotifierProvider.value(value: widget.settingsState),
-        ChangeNotifierProvider(create: (_) => ConnectivityState()),
+        ChangeNotifierProvider.value(value: _connectivityState),
+        Provider.value(value: _syncService),
       ],
       child: MaterialApp(
         title: StonepadStrings.appName,
