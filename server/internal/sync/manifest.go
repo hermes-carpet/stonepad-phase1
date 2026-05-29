@@ -13,9 +13,9 @@ import (
 // Manifest is the server-side manifest response.
 // Matches the format specified in §7.4.
 type Manifest struct {
-	Version     int           `json:"version"`
-	WorkspaceID string        `json:"workspace_id"`
-	GeneratedAt string        `json:"generated_at"`
+	Version     int             `json:"version"`
+	WorkspaceID string          `json:"workspace_id"`
+	GeneratedAt string          `json:"generated_at"`
 	Notes       []ManifestEntry `json:"notes"`
 }
 

@@ -14,23 +14,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hermes-carpet/stonepad/server/internal/auth"
 	"github.com/hermes-carpet/stonepad/server/internal/config"
 	"github.com/hermes-carpet/stonepad/server/internal/s3"
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
-	"github.com/google/uuid"
 )
 
 // Server wraps the HTTP server and associated dependencies.
 type Server struct {
-	cfg        *config.Config
-	store      storage.Storage
-	metaStore  *sync.MetadataStore
-	auth       auth.Authenticator
-	s3Handler  *S3Handler
-	mux        *http.ServeMux
-	logger     *slog.Logger
+	cfg       *config.Config
+	store     storage.Storage
+	metaStore *sync.MetadataStore
+	auth      auth.Authenticator
+	s3Handler *S3Handler
+	mux       *http.ServeMux
+	logger    *slog.Logger
 }
 
 // NewServer creates a new Server with all dependencies wired in.
@@ -329,6 +329,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 // Context keys
 type contextKey string
+
 const ctxKeyUserID contextKey = "userID"
 
 // --- Response helpers ---

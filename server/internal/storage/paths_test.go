@@ -17,12 +17,12 @@ func TestValidateNotePath(t *testing.T) {
 		{"a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p.md", false}, // 16 components (max)
 
 		// Invalid paths
-		{"", true},                                  // empty
-		{"/leading/slash.md", true},                 // leading slash
-		{"../escape.md", true},                      // ..
-		{"foo//bar.md", true},                       // empty component
-		{"foo/../bar.md", true},                     // .. in middle
-		{string(make([]byte, 513)), true},           // too long
+		{"", true},                        // empty
+		{"/leading/slash.md", true},       // leading slash
+		{"../escape.md", true},            // ..
+		{"foo//bar.md", true},             // empty component
+		{"foo/../bar.md", true},           // .. in middle
+		{string(make([]byte, 513)), true}, // too long
 	}
 	// Build a 513-char path
 	longPath := ""

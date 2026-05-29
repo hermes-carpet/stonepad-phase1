@@ -10,26 +10,26 @@ import (
 
 // Config holds all server configuration loaded from environment variables.
 type Config struct {
-	ListenAddr       string
-	DataDir          string
-	StorageMode      string // "direct" or "tmpfs"
+	ListenAddr            string
+	DataDir               string
+	StorageMode           string // "direct" or "tmpfs"
 	TmpfsSnapshotInterval int
-	TmpfsPersistDir  string
-	AuthMode         string // "none", "token", or "users"
-	AuthToken        string
-	WorkspaceID      string
-	UserID           string
-	LogLevel         string
-	S3EndpointEnabled bool
-	NativeAPIEnabled bool
-	MaxNoteSizeBytes int64
-	MaxNotesPerWorkspace int
-	RelayEnabled     bool
-	RelayEndpoint    string
-	RelayAccessKey   string
-	RelaySecretKey   string
-	RelayBucket      string
-	RelayPollInterval int
+	TmpfsPersistDir       string
+	AuthMode              string // "none", "token", or "users"
+	AuthToken             string
+	WorkspaceID           string
+	UserID                string
+	LogLevel              string
+	S3EndpointEnabled     bool
+	NativeAPIEnabled      bool
+	MaxNoteSizeBytes      int64
+	MaxNotesPerWorkspace  int
+	RelayEnabled          bool
+	RelayEndpoint         string
+	RelayAccessKey        string
+	RelaySecretKey        string
+	RelayBucket           string
+	RelayPollInterval     int
 }
 
 // Load reads all configuration from environment variables with sensible defaults.

@@ -20,16 +20,16 @@ func setupTestServer(t *testing.T) (*Server, string) {
 
 	dir := t.TempDir()
 	cfg := &config.Config{
-		ListenAddr:            ":0",
-		DataDir:               dir,
-		StorageMode:           "direct",
-		AuthMode:              "none",
-		WorkspaceID:           "default",
-		UserID:                "owner",
-		MaxNoteSizeBytes:      5 * 1024 * 1024,
-		MaxNotesPerWorkspace:  100000,
-		NativeAPIEnabled:      true,
-		S3EndpointEnabled:     false,
+		ListenAddr:           ":0",
+		DataDir:              dir,
+		StorageMode:          "direct",
+		AuthMode:             "none",
+		WorkspaceID:          "default",
+		UserID:               "owner",
+		MaxNoteSizeBytes:     5 * 1024 * 1024,
+		MaxNotesPerWorkspace: 100000,
+		NativeAPIEnabled:     true,
+		S3EndpointEnabled:    false,
 	}
 
 	store, err := storage.NewFilesystemStorage(dir, cfg.WorkspaceID)
@@ -153,12 +153,12 @@ func TestNote404(t *testing.T) {
 func TestNoteRequiresAuth(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &config.Config{
-		DataDir:      dir,
-		StorageMode:  "direct",
-		AuthMode:     "token",
-		AuthToken:    "secret123",
-		WorkspaceID:  "default",
-		UserID:       "owner",
+		DataDir:          dir,
+		StorageMode:      "direct",
+		AuthMode:         "token",
+		AuthToken:        "secret123",
+		WorkspaceID:      "default",
+		UserID:           "owner",
 		MaxNoteSizeBytes: 5 * 1024 * 1024,
 	}
 

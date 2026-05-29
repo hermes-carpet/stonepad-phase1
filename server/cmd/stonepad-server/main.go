@@ -17,11 +17,11 @@ import (
 	"github.com/hermes-carpet/stonepad/server/internal/auth"
 	"github.com/hermes-carpet/stonepad/server/internal/config"
 	httpsrv "github.com/hermes-carpet/stonepad/server/internal/http"
+	"github.com/hermes-carpet/stonepad/server/internal/relay"
 	"github.com/hermes-carpet/stonepad/server/internal/s3"
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
 	"github.com/hermes-carpet/stonepad/server/internal/tmpfs"
-	"github.com/hermes-carpet/stonepad/server/internal/relay"
 )
 
 // version is set at build time via -ldflags.
