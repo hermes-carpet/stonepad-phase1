@@ -43,8 +43,6 @@ void main() {
       syncService.dispose();
     });
 
-    String hash(String content) =>
-        sha256.convert(utf8.encode(content)).toString();
 
     test('empty manifests produce empty diff', () {
       // _computeDiff is private, we test behavior through runSyncCycle,

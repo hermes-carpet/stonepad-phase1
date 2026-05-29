@@ -41,7 +41,7 @@ void main() async {
     } catch (e) {
       // window_manager may fail in headless/XWayland environments.
       // Continue without window sizing — the app still runs.
-      print('Window manager unavailable (running headless): $e');
+      debugPrint('Window manager unavailable (running headless): $e');
     }
   }
 

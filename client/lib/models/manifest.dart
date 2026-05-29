@@ -63,8 +63,8 @@ class Manifest {
   }
 
   /// Serialize to a JSON string.
-  @override
-  66|  String toString() => jsonEncode(toJson());
+   @override
+  String toString() => jsonEncode(toJson());
 
   /// Notes with local changes pending sync.
   List<String> get modifiedPaths =>
