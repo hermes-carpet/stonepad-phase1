@@ -43,6 +43,28 @@ jobs:
           name: stonepad-apk
           path: /tmp/apk
 
+      - name: Verify APK
+        run: |
+          APK=/tmp/apk/app-release.apk
+          echo "=== APK verification ==="
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK not found at $APK"
+            exit 1
+          fi
+          SIZE=$(stat -c%s "$APK")
+          echo "Size: $SIZE bytes ($(echo "scale=1; $SIZE/1048576" | bc) MB)"
+          if [ "$SIZE" -lt 10000000 ]; then
+            echo "ERROR: APK too small (< 10 MB), likely corrupted"
+            exit 1
+          fi
+          # Verify it's a valid ZIP (APK is ZIP)
+          if ! unzip -t "$APK" > /dev/null 2>&1; then
+            echo "ERROR: APK is not a valid ZIP archive"
+            exit 1
+          fi
+          echo "APK is valid ZIP"
+          echo "=== Verification passed ==="
+
       - name: Publish alpha release
         uses: softprops/action-gh-release@v2
         with:
