@@ -1,0 +1,75 @@
+name: Client Alpha Release
+
+on:
+  workflow_run:
+    workflows: ["Client CI"]
+    types: [completed]
+    branches: [main]
+
+env:
+  FLUTTER_VERSION: '3.44'
+
+jobs:
+  alpha-release:
+    name: Build and Publish Alpha APK
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout triggering commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Read version
+        id: version
+        run: |
+          VER=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "version=$VER" >> $GITHUB_OUTPUT
+          echo "Full version: $VER"
+
+      - name: Compute alpha tag
+        id: tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.event.workflow_run.head_sha }}" | cut -c1-7)
+          TAG="v${{ steps.version.outputs.version }}-alpha.${SHORT_SHA}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Alpha tag: $TAG"
+
+      - run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Publish alpha release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Stonepad Client ${{ steps.tag.outputs.tag }}"
+          body: |
+            ⚠️ **Alpha release** — auto-published from successful CI on `main`.
+
+            | | |
+            |---|---|
+            | Commit | `${{ github.event.workflow_run.head_sha }}` |
+            | Base version | `${{ steps.version.outputs.version }}` |
+            | Triggered by | [${{ github.event.workflow_run.name }} #${{ github.event.workflow_run.run_number }}](${{ github.event.workflow_run.html_url }}) |
+
+            **Install**: Download the APK and sideload on Android.
+          prerelease: true
+          make_latest: false
+          files: client/build/app/outputs/flutter-apk/app-release.apk
