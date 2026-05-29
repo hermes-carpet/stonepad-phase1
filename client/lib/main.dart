@@ -10,6 +10,7 @@ import 'constants/strings.dart';
 import 'services/storage_service.dart';
 import 'services/sync_service.dart';
 import 'services/lifecycle_service.dart';
+import 'services/vault_manager.dart';
 import 'state/notes_state.dart';
 import 'state/sync_state_notifier.dart';
 import 'state/settings_state.dart';
@@ -18,6 +19,7 @@ import 'screens/notes_list_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/vault_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,9 @@ void main() async {
     }
   }
 
+  // Resolve vault path. On Android this may return null (need folder picker).
+  final vaultPath = await VaultManager.getOrCreateVaultPath();
+
   // Initialize services
   final storageService = StorageService();
   final settingsState = SettingsState();
@@ -53,17 +58,20 @@ void main() async {
   runApp(StonepadApp(
     storageService: storageService,
     settingsState: settingsState,
+    vaultConfigured: vaultPath != null,
   ));
 }
 
 class StonepadApp extends StatefulWidget {
   final StorageService storageService;
   final SettingsState settingsState;
+  final bool vaultConfigured;
 
   const StonepadApp({
     super.key,
     required this.storageService,
     required this.settingsState,
+    required this.vaultConfigured,
   });
 
   @override
@@ -76,10 +84,12 @@ class _StonepadAppState extends State<StonepadApp> {
   late final ConnectivityState _connectivityState;
   late final SyncService _syncService;
   late final LifecycleService _lifecycle;
+  late bool _vaultConfigured;
 
   @override
   void initState() {
     super.initState();
+    _vaultConfigured = widget.vaultConfigured;
     _notesState = NotesState(widget.storageService);
     _syncState = SyncStateNotifier();
     _connectivityState = ConnectivityState();
@@ -255,6 +265,16 @@ class _StonepadAppState extends State<StonepadApp> {
   }
 
   Widget _buildHome() {
+    // Android: if vault not configured, show folder picker first.
+    if (!_vaultConfigured) {
+      return VaultSetupScreen(
+        onVaultReady: () {
+          setState(() => _vaultConfigured = true);
+          // Reload manifest from new vault path.
+          _notesState.loadManifest();
+        },
+      );
+    }
     // If the user hasn't configured anything, show onboarding.
     if (!widget.settingsState.settings.isConfigured) {
       return const OnboardingScreen();

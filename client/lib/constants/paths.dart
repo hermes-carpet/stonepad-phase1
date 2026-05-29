@@ -1,32 +1,36 @@
 /// Filesystem path helpers for the client storage layout.
-/// Centralizes platform-specific path resolution so the rest of the code
-/// doesn't branch on platform. See §8.3 of the Stonepad v1 Plan.
+///
+/// All paths are rooted under the user's vault directory, managed by
+/// [VaultManager]. On Android this is a user-picked public folder; on iOS
+/// it's the app documents directory (visible in Files); on desktop it's
+/// `$HOME/.local/share/stonepad/`.
+///
+/// See §8.3 of the Stonepad v1 Implementation Plan.
 library;
+
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+import 'vault_manager.dart';
 
 class StonepadPaths {
   StonepadPaths._();
 
-  /// Returns the base directory where Stonepad stores all data.
-  ///
-  /// Android: internal app documents directory (reliable, no scoped storage issues)
-  /// iOS: application documents directory
-  /// Linux/Mac/Windows: $HOME/.local/share/stonepad/
+  /// Returns the base vault directory.
   static Future<Directory> getBaseDirectory() async {
-    if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      final home = Platform.environment['HOME'] ?? '/tmp';
-      final dir = Directory('$home/.local/share/stonepad');
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      return dir;
+    final path = await VaultManager.getOrCreateVaultPath();
+    if (path == null) {
+      throw StateError(
+        'Vault path not configured. Call VaultManager.pickAndroidFolder() '
+        'on Android before accessing StonepadPaths.',
+      );
     }
-    // Android, iOS: use app-internal documents directory
-    return getApplicationDocumentsDirectory();
+    final dir = Directory(path);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
   }
 
-  /// Returns the notes directory within the base directory.
+  /// Notes directory within the vault.
   static Future<Directory> notesDirectory() async {
     final base = await getBaseDirectory();
     final dir = Directory('${base.path}/notes/default');
@@ -36,7 +40,7 @@ class StonepadPaths {
     return dir;
   }
 
-  /// Returns the conflicts directory.
+  /// Conflicts directory.
   static Future<Directory> conflictsDirectory() async {
     final base = await getBaseDirectory();
     final dir = Directory('${base.path}/conflicts');
