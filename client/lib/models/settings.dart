@@ -1,8 +1,9 @@
 /// User-configurable settings, persisted to settings.json.
 class StonepadSettings {
   String? serverEndpoint;
-  String authMode; // ***, "token", "s3"
-  String? authToken;
+  String authMode; // ***, "token", "users", "s3"
+  String? authToken;     // Shared token for "token" mode
+  String? sessionToken;  // Session token for "users" mode (from login)
   String? s3AccessKey;
   String? s3SecretKey;
   String workspaceId;
@@ -17,6 +18,7 @@ class StonepadSettings {
     this.serverEndpoint,
     this.authMode = 'n' 'one',
     this.authToken,
+    this.sessionToken,
     this.s3AccessKey,
     this.s3SecretKey,
     this.workspaceId = 'default',
@@ -32,6 +34,7 @@ class StonepadSettings {
       serverEndpoint: json['server_endpoint'],
       authMode: json['auth_mode'] ?? 'n' 'one',
       authToken: json['auth_token'],
+      sessionToken: json['session_token'],
       s3AccessKey: json['s3_access_key'],
       s3SecretKey: json['s3_secret_key'],
       workspaceId: json['workspace_id'] ?? 'default',
@@ -48,6 +51,7 @@ class StonepadSettings {
       'server_endpoint': serverEndpoint,
       'auth_mode': authMode,
       'auth_token': authToken,
+      'session_token': sessionToken,
       's3_access_key': s3AccessKey,
       's3_secret_key': s3SecretKey,
       'workspace_id': workspaceId,

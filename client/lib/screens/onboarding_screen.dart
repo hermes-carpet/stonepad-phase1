@@ -45,9 +45,20 @@ class OnboardingScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton.tonalIcon(
                   icon: const Icon(Icons.sync),
-                  label: const Text(StonepadStrings.setupSync),
+                  label: const Text('Set up sync'),
                   onPressed: () {
                     Navigator.pushReplacementNamed(context, '/settings');
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.login),
+                  label: const Text('Sign in with username/password'),
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/login');
                   },
                 ),
               ),

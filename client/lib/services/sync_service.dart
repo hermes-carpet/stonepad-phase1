@@ -66,16 +66,31 @@ class SyncService {
     final host = uri.host;
     final port = uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80);
 
-    // For the S3-compatible server, use the S3 access key / secret key.
-    // If auth mode is 's3', use those keys. Otherwise fall back to auth token.
-    final accessKey = (s.authMode == 's3')
-        ? (s.s3AccessKey ?? '')
-        : (s.authToken ?? '');
-    final secretKey = (s.authMode == 's3')
-        ? (s.s3SecretKey ?? '')
-        : (s.authToken ?? '');
+    // For the S3-compatible server, use the appropriate credentials based on auth mode.
+    // - none:   empty credentials (passes through)
+    // - token:  use the shared bearer token as both access key and secret key
+    // - users:  use the session token as both access key and secret key
+    // - s3:     use the explicit S3 access key / secret key pair
+    String accessKey;
+    String secretKey;
 
-    if (accessKey.isEmpty || secretKey.isEmpty) return null;
+    switch (s.authMode) {
+      case 's3':
+        accessKey = s.s3AccessKey ?? '';
+        secretKey = s.s3SecretKey ?? '';
+        break;
+      case 'users':
+        accessKey = s.sessionToken ?? '';
+        secretKey = s.sessionToken ?? '';
+        break;
+      case 'token':
+        accessKey = s.authToken ?? '';
+        secretKey = s.authToken ?? '';
+        break;
+      default: // none
+        accessKey = '';
+        secretKey = '';
+    }
 
     return Minio(
       endPoint: host,

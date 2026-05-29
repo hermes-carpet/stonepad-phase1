@@ -6,8 +6,10 @@ import '../state/settings_state.dart';
 import '../state/sync_state_notifier.dart';
 import '../state/notes_state.dart';
 import '../services/sync_service.dart';
+import '../models/settings.dart';
 import '../constants/strings.dart';
 import '../constants/paths.dart';
+import 'login_screen.dart';
 import 'package:flutter/services.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -101,16 +103,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 title: const Text('Authentication mode'),
                 subtitle: Text(settings.authMode == 'token'
-                    ? 'Token'
+                    ? 'Shared Token'
                     : settings.authMode == 's3'
                         ? 'S3 Access Keys'
-                        : 'None'),
+                        : settings.authMode == 'users'
+                            ? 'Username / Password'
+                            : 'None'),
                 trailing: DropdownButton<String>(
                   value: settings.authMode,
                   items: const [
                     DropdownMenuItem(value: 'n' 'one', child: Text('None')),
                     DropdownMenuItem(value: 'token', child: Text('Token')),
                     DropdownMenuItem(value: 's3', child: Text('S3 Keys')),
+                    DropdownMenuItem(value: 'users', child: Text('Login')),
                   ],
                   onChanged: (v) {
                     if (v != null) settingsState.setAuthMode(v);
@@ -121,10 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (settings.authMode == 'token')
                 _buildTextField(
                   controller: _tokenController,
-                  label: 'Auth token',
+                  label: 'Shared auth token',
                   obscureText: true,
                   onChanged: (v) => settingsState.setAuthToken(v),
                 ),
+
+              if (settings.authMode == 'users')
+                _buildUsersModeSection(settingsState, settings),
 
               if (settings.authMode == 's3') ...[
                 _buildTextField(
@@ -213,6 +221,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(syncState.lastSuccess!.toLocal().toString()),
                 ),
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUsersModeSection(SettingsState settingsState, StonepadSettings settings) {
+    // If logged in, show session status
+    if (settings.sessionToken != null && settings.sessionToken!.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 8),
+                const Expanded(child: Text('Signed in')),
+                TextButton(
+                  onPressed: () async {
+                    await settingsState.setSessionToken(null);
+                  },
+                  child: const Text('Sign Out'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Not logged in — show "Sign In" button
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.login),
+        label: const Text('Sign In to Server'),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
           );
         },
       ),

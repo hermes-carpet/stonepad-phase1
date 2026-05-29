@@ -51,6 +51,13 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set the session token from a users-mode login.
+  Future<void> setSessionToken(String? value) async {
+    _settings.sessionToken = value;
+    await save();
+    notifyListeners();
+  }
+
   Future<void> setS3Keys(String? accessKey, String? secretKey) async {
     _settings.s3AccessKey = accessKey;
     _settings.s3SecretKey = secretKey;

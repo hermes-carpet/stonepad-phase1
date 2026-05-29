@@ -16,6 +16,7 @@ import 'state/connectivity_state.dart';
 import 'screens/notes_list_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -143,6 +144,7 @@ class _StonepadAppState extends State<StonepadApp> {
         routes: {
           '/notes': (_) => const NotesListScreen(),
           '/settings': (_) => const SettingsScreen(),
+          '/login': (_) => const LoginScreen(),
         },
       ),
     );
