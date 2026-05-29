@@ -68,8 +68,8 @@ func TestBuildListObjectsResult_Delimiter(t *testing.T) {
 	if result.KeyCount != 1 {
 		t.Errorf("with delimiter /: KeyCount = %d, want 1 (root.md)", result.KeyCount)
 	}
-	if len(result.CommonPrefixes) != 1 {
-		t.Errorf("expected 1 CommonPrefix (work/), got %d", len(result.CommonPrefixes))
+	if len(*result.CommonPrefixes) != 1 {
+		t.Errorf("expected 1 CommonPrefix (work/), got %d", len(*result.CommonPrefixes))
 	}
 }
 
