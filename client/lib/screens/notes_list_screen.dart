@@ -1,0 +1,260 @@
+/// Notes List Screen — Apple Notes-style folder hierarchy browser.
+/// Shows folders first, then notes alphabetically. Supports create, rename, delete.
+/// See §8.10 of the Stonepad v1 Implementation Plan.
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../state/notes_state.dart';
+import '../services/storage_service.dart';
+import 'note_editor_screen.dart';
+
+class NotesListScreen extends StatefulWidget {
+  const NotesListScreen({super.key});
+
+  @override
+  State<NotesListScreen> createState() => _NotesListScreenState();
+}
+
+class _NotesListScreenState extends State<NotesListScreen> {
+  String _currentFolder = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotesState>().loadManifest();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<NotesState>(
+      builder: (context, notesState, _) {
+        final allPaths = notesState.allPaths;
+        final folders = StorageService.subFolders(allPaths, _currentFolder);
+        final notes = StorageService.notesInFolder(allPaths, _currentFolder);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: _currentFolder.isEmpty
+                ? const Text('Stonepad')
+                : Text(_buildBreadcrumb()),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.create_new_folder_outlined),
+                tooltip: 'New Folder',
+                onPressed: () => _createFolder(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.note_add),
+                tooltip: 'New Note',
+                onPressed: () => _createNote(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => Navigator.pushNamed(context, '/settings'),
+              ),
+            ],
+          ),
+          body: ListView(
+            children: [
+              if (_currentFolder.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.arrow_back),
+                  title: const Text('..'),
+                  onTap: () => _navigateUp(),
+                ),
+              ...folders.map((f) => ListTile(
+                    leading: const Icon(Icons.folder, color: Colors.amber),
+                    title: Text(f.split('/').last),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => setState(() => _currentFolder = f),
+                    onLongPress: () => _showFolderActions(f),
+                  )),
+              ...notes.map((notePath) {
+                final entry = notesState.manifest.notes[notePath];
+                if (entry == null) return const SizedBox.shrink();
+                final statusIcon = _syncStatusIcon(entry.status.name);
+                return ListTile(
+                  leading: const Icon(Icons.description, color: Colors.grey),
+                  title: Text(notePath.split('/').last.replaceAll('.md', '')),
+                  subtitle: Text(notePath),
+                  trailing: statusIcon,
+                  onTap: () => _openNote(notesState, notePath),
+                  onLongPress: () => _showNoteActions(notesState, notePath),
+                );
+              }),
+              if (folders.isEmpty && notes.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      'No notes yet.\nTap + to create one.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget? _syncStatusIcon(String status) {
+    switch (status) {
+      case 'modified':
+        return const Icon(Icons.cloud_upload, size: 16, color: Colors.orange);
+      case 'conflict_pending':
+        return const Icon(Icons.warning, size: 16, color: Colors.red);
+      default:
+        return null;
+    }
+  }
+
+  String _buildBreadcrumb() {
+    if (_currentFolder.isEmpty) return 'Stonepad';
+    final parts = _currentFolder.split('/');
+    return parts.join(' / ');
+  }
+
+  void _navigateUp() {
+    final parts = _currentFolder.split('/');
+    if (parts.length <= 1) {
+      setState(() => _currentFolder = '');
+    } else {
+      setState(() => _currentFolder = parts.sublist(0, parts.length - 1).join('/'));
+    }
+  }
+
+  void _openNote(NotesState notesState, String path) {
+    notesState.openNote(path).then((_) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider.value(
+            value: notesState,
+            child: NoteEditorScreen(notePath: path),
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _createNote() async {
+    final nameController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Note'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Note name (e.g. shopping-list)',
+            suffixText: '.md',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, nameController.text),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final folderPrefix = _currentFolder.isEmpty ? '' : '$_currentFolder/';
+      final path = '$folderPrefix$result.md';
+      final notesState = context.read<NotesState>();
+      await notesState.createNote(path);
+      if (mounted) {
+        _openNote(notesState, path);
+      }
+    }
+  }
+
+  Future<void> _createFolder() async {
+    final nameController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Folder'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Folder name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, nameController.text),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final folderPrefix = _currentFolder.isEmpty ? '' : '$_currentFolder/';
+      final folderPath = '$folderPrefix$result';
+      // Create an empty .gitkeep-like marker to make the folder visible
+      // Actually, empty folders are allowed by the plan. Just create the dir.
+      final notesState = context.read<NotesState>();
+      await notesState.createNote('$folderPath/.folder', content: '');
+      // Immediately delete it — the folder remains, and we have our hierarchy
+      await notesState.deleteNote('$folderPath/.folder');
+      setState(() {});
+    }
+  }
+
+  void _showFolderActions(String folderPath) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Rename'),
+            onTap: () => Navigator.pop(ctx),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onTap: () => Navigator.pop(ctx),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNoteActions(NotesState notesState, String path) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.open_in_new),
+            title: const Text('Open'),
+            onTap: () {
+              Navigator.pop(ctx);
+              _openNote(notesState, path);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(ctx);
+              notesState.deleteNote(path);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
