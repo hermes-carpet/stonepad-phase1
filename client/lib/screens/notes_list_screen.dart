@@ -94,7 +94,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
                     onTap: () => setState(() => _currentFolder = f),
                     onLongPress: () => _showFolderActions(f),
                   )),
-              ...notes.map((notePath) {
+              ...notes
+                .where((p) => !p.endsWith('/.folder'))
+                .map((notePath) {
                 final entry = notesState.manifest.notes[notePath];
                 if (entry == null) return const SizedBox.shrink();
                 final statusIcon = _syncStatusIcon(entry.status.name);
@@ -257,12 +259,11 @@ class _NotesListScreenState extends State<NotesListScreen> {
     if (result != null && result.isNotEmpty) {
       final folderPrefix = _currentFolder.isEmpty ? '' : '$_currentFolder/';
       final folderPath = '$folderPrefix$result';
-      // Create an empty .gitkeep-like marker to make the folder visible
-      // Actually, empty folders are allowed by the plan. Just create the dir.
+      // Create a .folder marker so the folder appears in subFolders().
+      // The marker is filtered from the notes list display but keeps
+      // the folder visible in the hierarchy.
       final notesState = context.read<NotesState>();
       await notesState.createNote('$folderPath/.folder', content: '');
-      // Immediately delete it — the folder remains, and we have our hierarchy
-      await notesState.deleteNote('$folderPath/.folder');
       setState(() {});
     }
   }

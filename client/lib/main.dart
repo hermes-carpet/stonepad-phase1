@@ -213,8 +213,16 @@ class _StonepadAppState extends State<StonepadApp> {
           dividerColor: const Color(0xFF2A2A2A),
           filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor: const Color(0xFFFBFBFA), // Warm bone (not stark white)
               foregroundColor: const Color(0xFF111111),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF94A3B8), // Slate accent now visible
+              side: const BorderSide(color: Color(0xFF94A3B8)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
