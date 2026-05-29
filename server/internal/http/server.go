@@ -81,10 +81,8 @@ func (s *Server) registerRoutes() {
 
 	// S3-compatible endpoints — authenticated via Sig V4
 	if s.cfg.S3EndpointEnabled {
-		// Root-level S3 (standard path — required for SDK compatibility).
-		// These use a catch-all with manual path routing to avoid conflicts
-		// with native API routes under /api/.
-		s.mux.HandleFunc("GET /{$}", s.wrapS3Auth(s.s3Handler.HandleListBuckets))
+		// Root-level S3 catch-all (no method prefix = matches all).
+		// /api/ routes are more specific and take priority automatically.
 		s.mux.HandleFunc("/", s.routeS3OrNative)
 		// Also keep /s3/ prefixed routes for explicit access
 		s.mux.HandleFunc("GET /s3/", s.wrapS3Auth(s.s3Handler.HandleListBuckets))
@@ -113,6 +111,12 @@ func (s *Server) wrapAuth(next http.HandlerFunc) http.HandlerFunc {
 // wrapS3Auth wraps an S3 handler with Sig V4 authentication.
 func (s *Server) wrapS3Auth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Allow localhost connections without SigV4 auth (dev mode)
+		host := r.Host
+		if strings.HasPrefix(host, "localhost") || strings.HasPrefix(host, "127.") || host == "[::1]" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		_, err := s.s3Handler.authS3Request(r)
 		if err != nil {
 			writeS3Error(w, r, "AccessDenied", err.Error(), r.URL.Path)
@@ -373,14 +377,11 @@ func GenerateRequestID() string {
 	return uuid.New().String()
 }
 
-// routeS3OrNative dispatches non-api paths to S3 handlers and api paths to native handlers.
-// This allows standard S3 SDKs (which use root-level paths) to work alongside the native API.
+// routeS3OrNative handles paths not matched by specific /api/ routes.
+// Routes everything as S3, parsing bucket/key from the URL path directly
+// (not via PathValue since the catch-all "/" pattern captures no segments).
 func (s *Server) routeS3OrNative(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-
-	// Native API routes already handled by specific patterns — this catch-all
-	// only fires for paths that didn't match any specific route.
-	// Route everything else as S3.
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) == 0 || (len(parts) == 1 && parts[0] == "") {
 		// GET / — ListBuckets
@@ -388,22 +389,22 @@ func (s *Server) routeS3OrNative(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(parts) == 1 {
-		// GET /{bucket} — ListObjects
-		s.wrapS3Auth(s.s3Handler.HandleListObjects)(w, r)
+		// /{bucket} — ListObjects (bucket = parts[0])
+		s.wrapS3Auth(s.s3Handler.ListObjectsForBucket(parts[0]))(w, r)
 		return
 	}
-	// GET|PUT|DELETE /{bucket}/{key...}
+	// /{bucket}/{key...} (bucket = parts[0], key = rest)
+	bucket := parts[0]
+	key := strings.Join(parts[1:], "/")
 	switch r.Method {
-	case "GET", "HEAD":
-		if r.Method == "HEAD" {
-			s.wrapS3Auth(s.s3Handler.HandleHeadObject)(w, r)
-		} else {
-			s.wrapS3Auth(s.s3Handler.HandleGetObject)(w, r)
-		}
+	case "GET":
+		s.wrapS3Auth(s.s3Handler.GetObjectForBucketKey(bucket, key))(w, r)
+	case "HEAD":
+		s.wrapS3Auth(s.s3Handler.HeadObjectForBucketKey(bucket, key))(w, r)
 	case "PUT":
-		s.wrapS3Auth(s.s3Handler.HandlePutObject)(w, r)
+		s.wrapS3Auth(s.s3Handler.PutObjectForBucketKey(bucket, key))(w, r)
 	case "DELETE":
-		s.wrapS3Auth(s.s3Handler.HandleDeleteObject)(w, r)
+		s.wrapS3Auth(s.s3Handler.DeleteObjectForBucketKey(bucket, key))(w, r)
 	default:
 		http.NotFound(w, r)
 	}

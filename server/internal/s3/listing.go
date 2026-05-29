@@ -122,14 +122,14 @@ func BuildListObjectsResult(bucket string, metas []storage.NoteMeta, opts ListOb
 	}
 
 	result := &ListBucketResult{
-		Xmlns:                 "http://s3.amazonaws.com/doc/2006-03-01/",
-		Name:                  bucket,
-		Prefix:                opts.Prefix,
-		KeyCount:              len(objects),
-		MaxKeys:               opts.MaxKeys,
-		IsTruncated:           isTruncated,
-		Contents:              objects,
-		CommonPrefixes:        commonPrefixes,
+		Xmlns:         "http://s3.amazonaws.com/doc/2006-03-01/",
+		Name:          bucket,
+		Prefix:        opts.Prefix,
+		KeyCount:      len(objects),
+		MaxKeys:       opts.MaxKeys,
+		IsTruncated:   isTruncated,
+		Contents:      objects,
+		CommonPrefixes: commonPrefixPtr(commonPrefixes),
 		ContinuationToken:     opts.ContinuationToken,
 		NextContinuationToken: nextToken,
 		Delimiter:             opts.Delimiter,
@@ -159,4 +159,13 @@ func generateContinuationToken() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// commonPrefixPtr returns nil if the slice is empty, otherwise returns a pointer to the slice.
+// This ensures Go's XML marshaling correctly omits the CommonPrefixes element when empty.
+func commonPrefixPtr(s []CommonPrefix) *[]CommonPrefix {
+	if len(s) == 0 {
+		return nil
+	}
+	return &s
 }

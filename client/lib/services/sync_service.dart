@@ -98,6 +98,7 @@ class SyncService {
       useSSL: uri.scheme == 'https',
       accessKey: accessKey,
       secretKey: secretKey,
+      region: 'us-east-1',
     );
   }
 

@@ -257,6 +257,161 @@ func (h *S3Handler) authS3Request(r *http.Request) (*s3.Credential, error) {
 	return s3.VerifySignature(r, h.creds, time.Now())
 }
 
+// --- Parameterized handlers for catch-all route (no PathValue available) ---
+
+// ListObjectsForBucket returns a handler for listing objects in the given bucket.
+func (h *S3Handler) ListObjectsForBucket(bucket string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if bucket != h.workspaceID {
+			writeS3Error(w, r, "NoSuchBucket", "The specified bucket does not exist", bucket)
+			return
+		}
+		prefix := r.URL.Query().Get("prefix")
+		maxKeysStr := r.URL.Query().Get("max-keys")
+		maxKeys := s3.DefaultMaxKeys
+		if maxKeysStr != "" {
+			if n, err := strconv.Atoi(maxKeysStr); err == nil && n > 0 {
+				maxKeys = n
+			}
+		}
+		metas, err := h.store.List(r.Context(), "")
+		if err != nil {
+			writeS3Error(w, r, "InternalError", "Failed to list objects", bucket)
+			return
+		}
+		opts := s3.ListObjectsOpts{
+			Prefix:            prefix,
+			MaxKeys:           maxKeys,
+			ContinuationToken: r.URL.Query().Get("continuation-token"),
+		}
+		result := s3.BuildListObjectsResult(bucket, metas, opts)
+		writeXML(w, http.StatusOK, result)
+	}
+}
+
+// GetObjectForBucketKey returns a handler for GET on a specific bucket/key.
+func (h *S3Handler) GetObjectForBucketKey(bucket, key string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if bucket != h.workspaceID {
+			writeS3Error(w, r, "NoSuchBucket", "The specified bucket does not exist", bucket)
+			return
+		}
+		if key == "" {
+			writeS3Error(w, r, "InvalidArgument", "Key is required", h.workspaceID)
+			return
+		}
+		reader, err := h.store.Get(r.Context(), key)
+		if err == storage.ErrNotFound {
+			writeS3Error(w, r, "NoSuchKey", "The specified key does not exist", key)
+			return
+		}
+		if err != nil {
+			writeS3Error(w, r, "InternalError", "Failed to read object", key)
+			return
+		}
+		defer reader.Close()
+		meta, metaErr := h.store.Head(r.Context(), key)
+		w.Header().Set("Content-Type", "text/markdown")
+		if metaErr == nil {
+			w.Header().Set("Content-Length", strconv.FormatInt(meta.SizeBytes, 10))
+			w.Header().Set("ETag", fmt.Sprintf(`"%s"`, meta.ContentHash))
+			w.Header().Set("Last-Modified", meta.ModifiedAt.UTC().Format(http.TimeFormat))
+			w.Header().Set("x-amz-meta-content-hash", meta.ContentHash)
+		}
+		w.WriteHeader(http.StatusOK)
+		io.Copy(w, reader)
+	}
+}
+
+// HeadObjectForBucketKey returns a handler for HEAD on a specific bucket/key.
+func (h *S3Handler) HeadObjectForBucketKey(bucket, key string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if bucket != h.workspaceID {
+			writeS3Error(w, r, "NoSuchBucket", "The specified bucket does not exist", bucket)
+			return
+		}
+		if key == "" {
+			writeS3Error(w, r, "InvalidArgument", "Key is required", h.workspaceID)
+			return
+		}
+		meta, err := h.store.Head(r.Context(), key)
+		if err == storage.ErrNotFound {
+			writeS3Error(w, r, "NoSuchKey", "The specified key does not exist", key)
+			return
+		}
+		if err != nil {
+			writeS3Error(w, r, "InternalError", "Failed to read object metadata", key)
+			return
+		}
+		w.Header().Set("Content-Type", "text/markdown")
+		w.Header().Set("Content-Length", strconv.FormatInt(meta.SizeBytes, 10))
+		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, meta.ContentHash))
+		w.Header().Set("Last-Modified", meta.ModifiedAt.UTC().Format(http.TimeFormat))
+		w.Header().Set("x-amz-meta-content-hash", meta.ContentHash)
+		w.Header().Set("x-amz-meta-modified-at", meta.ModifiedAt.UTC().Format(time.RFC3339))
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// PutObjectForBucketKey returns a handler for PUT on a specific bucket/key.
+func (h *S3Handler) PutObjectForBucketKey(bucket, key string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if bucket != h.workspaceID {
+			writeS3Error(w, r, "NoSuchBucket", "The specified bucket does not exist", bucket)
+			return
+		}
+		if key == "" {
+			writeS3Error(w, r, "InvalidArgument", "Key is required", h.workspaceID)
+			return
+		}
+		if storage.IsDotPrefixed(key) {
+			writeS3Error(w, r, "InvalidArgument", "Key must not be dot-prefixed", key)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, h.maxNoteSize)
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			if strings.Contains(err.Error(), "http: request body too large") {
+				writeS3Error(w, r, "EntityTooLarge", "Object exceeds maximum size", key)
+				return
+			}
+			writeS3Error(w, r, "InternalError", "Failed to read request body", key)
+			return
+		}
+		contentHash, err := h.store.Put(r.Context(), key, strings.NewReader(string(bodyBytes)))
+		if err != nil {
+			writeS3Error(w, r, "InternalError", "Failed to store object", key)
+			return
+		}
+		sizeBytes := int64(len(bodyBytes))
+		h.metaStore.UpsertNote(h.workspaceID, key, contentHash, sizeBytes)
+		h.metaStore.RecordAudit(h.workspaceID, "owner", "update", key, contentHash)
+		w.Header().Set("ETag", fmt.Sprintf(`"%s"`, contentHash))
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// DeleteObjectForBucketKey returns a handler for DELETE on a specific bucket/key.
+func (h *S3Handler) DeleteObjectForBucketKey(bucket, key string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if bucket != h.workspaceID {
+			writeS3Error(w, r, "NoSuchBucket", "The specified bucket does not exist", bucket)
+			return
+		}
+		if key == "" {
+			writeS3Error(w, r, "InvalidArgument", "Key is required", h.workspaceID)
+			return
+		}
+		if err := h.store.Delete(r.Context(), key); err != nil {
+			writeS3Error(w, r, "InternalError", "Failed to delete object", key)
+			return
+		}
+		h.metaStore.DeleteNote(h.workspaceID, key)
+		h.metaStore.RecordAudit(h.workspaceID, "owner", "delete", key, "")
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 // --- S3 error helpers ---
 
 func writeS3Error(w http.ResponseWriter, r *http.Request, code, message, resource string) {

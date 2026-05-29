@@ -44,7 +44,7 @@ type ListBucketResult struct {
 	MaxKeys               int            `xml:"MaxKeys"`
 	IsTruncated           bool           `xml:"IsTruncated"`
 	Contents              []Object       `xml:"Contents,omitempty"`
-	CommonPrefixes        []CommonPrefix `xml:"CommonPrefixes>Prefix,omitempty"`
+	CommonPrefixes        *[]CommonPrefix `xml:"CommonPrefixes>Prefix"`
 	ContinuationToken     string         `xml:"ContinuationToken,omitempty"`
 	NextContinuationToken string         `xml:"NextContinuationToken,omitempty"`
 	Delimiter             string         `xml:"Delimiter,omitempty"`

@@ -39,7 +39,7 @@ func VerifySignature(r *http.Request, creds []Credential, now time.Time) (*Crede
 	// Parse Authorization header
 	parsed := parseAuthHeader(authHeader)
 	if parsed == nil {
-		return nil, fmt.Errorf("invalid Authorization header format")
+		return nil, fmt.Errorf("invalid Authorization header format: %s", authHeader[:min(len(authHeader), 80)])
 	}
 
 	// Find matching credential
