@@ -69,13 +69,24 @@ jobs:
           java-version: '17'
       - run: flutter clean
       - run: flutter pub get
+      - name: Read version
+        id: version
+        run: |
+          VER=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "ver=$VER" >> $GITHUB_OUTPUT
       - name: Build APK
         run: flutter build apk --release --build-number=$(date +%s)
+      - name: Rename APK
+        run: |
+          SRC=build/app/outputs/flutter-apk/app-release.apk
+          DST=build/app/outputs/flutter-apk/stonepad-${{ steps.version.outputs.ver }}-universal.apk
+          mv "$SRC" "$DST"
+          echo "APK: $DST ($(stat -c%s "$DST") bytes)"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: stonepad-apk
-          path: client/build/app/outputs/flutter-apk/app-release.apk
+          path: client/build/app/outputs/flutter-apk/stonepad-*.apk
 
   build-linux:
     name: Build Linux (smoke test)

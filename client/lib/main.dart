@@ -50,10 +50,12 @@ void main() async {
   // Resolve vault path. On Android this may return null (need folder picker).
   final vaultPath = await VaultManager.getOrCreateVaultPath();
 
-  // Initialize services
+  // Initialize services — skip storage ops if vault isn't configured yet.
   final storageService = StorageService();
   final settingsState = SettingsState();
-  await settingsState.load();
+  if (vaultPath != null) {
+    await settingsState.load();
+  }
 
   runApp(StonepadApp(
     storageService: storageService,
@@ -270,8 +272,9 @@ class _StonepadAppState extends State<StonepadApp> {
       return VaultSetupScreen(
         onVaultReady: () {
           setState(() => _vaultConfigured = true);
-          // Reload manifest from new vault path.
+          // Reload manifest and settings from new vault path.
           _notesState.loadManifest();
+          widget.settingsState.load();
         },
       );
     }

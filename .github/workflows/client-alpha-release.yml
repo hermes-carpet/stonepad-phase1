@@ -45,12 +45,14 @@ jobs:
 
       - name: Verify APK
         run: |
-          APK=/tmp/apk/app-release.apk
+          APK=$(ls /tmp/apk/stonepad-*.apk 2>/dev/null | head -1)
           echo "=== APK verification ==="
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: APK not found at $APK"
+          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+            echo "ERROR: APK not found in /tmp/apk/"
+            ls -la /tmp/apk/
             exit 1
           fi
+          echo "APK: $APK"
           SIZE=$(stat -c%s "$APK")
           echo "Size: $SIZE bytes ($(echo "scale=1; $SIZE/1048576" | bc) MB)"
           if [ "$SIZE" -lt 10000000 ]; then
@@ -64,6 +66,7 @@ jobs:
           fi
           echo "APK is valid ZIP"
           echo "=== Verification passed ==="
+          echo "apk_path=$APK" >> $GITHUB_ENV
 
       - name: Publish alpha release
         uses: softprops/action-gh-release@v2
@@ -74,11 +77,11 @@ jobs:
             ⚠️ **Pre-release** — auto-published from CI on `main`.
 
             | | |
-            |---|---|
-            | Version | `${{ steps.version.outputs.ver }}` |
-            | Commit | `${{ github.event.workflow_run.head_sha }}` |
+            |---|---
+            | Version | `${{ steps.version.outputs.ver }}`
+            | Commit | `${{ github.event.workflow_run.head_sha }}`
 
             **Install**: Download the APK and sideload on Android.
           prerelease: true
           make_latest: false
-          files: /tmp/apk/app-release.apk
+          files: ${{ env.apk_path }}
