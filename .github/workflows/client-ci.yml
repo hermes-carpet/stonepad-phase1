@@ -6,6 +6,9 @@ on:
     paths:
       - 'client/**'
       - '.github/workflows/client-ci.yml'
+  push:
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
     paths:
