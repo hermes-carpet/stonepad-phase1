@@ -37,7 +37,14 @@ class _NotesListScreenState extends State<NotesListScreen> {
         final folders = StorageService.subFolders(allPaths, _currentFolder);
         final notes = StorageService.notesInFolder(allPaths, _currentFolder);
 
-        return Scaffold(
+        return PopScope(
+          canPop: _currentFolder.isEmpty,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && _currentFolder.isNotEmpty) {
+              _navigateUp();
+            }
+          },
+          child: Scaffold(
           appBar: AppBar(
             title: _currentFolder.isEmpty
                 ? const Text('Stonepad')
@@ -142,6 +149,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
                 ),
             ],
           ),
+        )
         );
       },
     );

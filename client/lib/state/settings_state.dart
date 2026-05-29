@@ -78,6 +78,12 @@ class SettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setEndpointVerified(bool value) async {
+    _settings.endpointVerified = value;
+    await save();
+    notifyListeners();
+  }
+
   Future<void> setRelayConfig({
     bool? enabled,
     String? endpoint,

@@ -8,6 +8,7 @@ class StonepadSettings {
   String? s3SecretKey;
   String workspaceId;
   bool syncEnabled;
+  bool endpointVerified; // set true after successful Test Connection
   // Relay (optional)
   bool relayEnabled;
   String? relayEndpoint;
@@ -23,6 +24,7 @@ class StonepadSettings {
     this.s3SecretKey,
     this.workspaceId = 'default',
     this.syncEnabled = false,
+    this.endpointVerified = false,
     this.relayEnabled = false,
     this.relayEndpoint,
     this.relayAccessKey,
@@ -39,6 +41,7 @@ class StonepadSettings {
       s3SecretKey: json['s3_secret_key'],
       workspaceId: json['workspace_id'] ?? 'default',
       syncEnabled: json['sync_enabled'] ?? false,
+      endpointVerified: json['endpoint_verified'] ?? false,
       relayEnabled: json['relay_enabled'] ?? false,
       relayEndpoint: json['relay_endpoint'],
       relayAccessKey: json['relay_access_key'],
@@ -56,6 +59,7 @@ class StonepadSettings {
       's3_secret_key': s3SecretKey,
       'workspace_id': workspaceId,
       'sync_enabled': syncEnabled,
+      'endpoint_verified': endpointVerified,
       'relay_enabled': relayEnabled,
       'relay_endpoint': relayEndpoint,
       'relay_access_key': relayAccessKey,

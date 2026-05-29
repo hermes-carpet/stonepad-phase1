@@ -3,6 +3,7 @@
 library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../state/settings_state.dart';
 import '../state/sync_state_notifier.dart';
 import '../state/notes_state.dart';
@@ -27,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _secretKeyController = TextEditingController();
   final _workspaceController = TextEditingController();
   final _relayEndpointController = TextEditingController();
+  bool _testing = false;
 
   @override
   void initState() {
@@ -97,7 +99,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: _endpointController,
                 label: 'Server endpoint URL',
                 hint: 'https://stonepad.example.com',
-                onChanged: (v) => settingsState.setServerEndpoint(v),
+                onChanged: (v) {
+                  settingsState.setServerEndpoint(v);
+                  // Changing endpoint resets verification
+                  if (settings.endpointVerified) {
+                    settingsState.setEndpointVerified(false);
+                  }
+                },
+              ),
+
+              // Test Connection button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: OutlinedButton.icon(
+                  icon: _testing
+                      ? const SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          settings.endpointVerified
+                              ? Icons.check_circle
+                              : Icons.wifi_find,
+                          size: 18,
+                          color: settings.endpointVerified
+                              ? Colors.green
+                              : null,
+                        ),
+                  label: Text(
+                    settings.endpointVerified
+                        ? 'Connection verified'
+                        : 'Test Connection',
+                  ),
+                  onPressed: settings.hasEndpoint && !_testing
+                      ? () => _testConnection(settingsState)
+                      : null,
+                ),
               ),
 
               // Auth mode
@@ -172,12 +209,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ElevatedButton.icon(
                 icon: const Icon(Icons.sync),
                 label: const Text('Sync now'),
-                onPressed: () {
-                  context.read<SyncService>().manualSync();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Manual sync triggered')),
-                  );
-                },
+                onPressed: (settings.hasEndpoint && settings.endpointVerified)
+                    ? () {
+                        context.read<SyncService>().manualSync();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Manual sync triggered')),
+                        );
+                      }
+                    : null,
               ),
 
               const Divider(),
@@ -280,6 +319,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _testConnection(SettingsState settingsState) async {
+    setState(() => _testing = true);
+    try {
+      final endpoint = settingsState.settings.serverEndpoint!;
+      final url = Uri.parse('$endpoint/api/v1/health');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        await settingsState.setEndpointVerified(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Connection successful'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Server returned ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connection failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _testing = false);
+    }
   }
 
   Widget _buildTextField({
