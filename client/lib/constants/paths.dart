@@ -10,18 +10,10 @@ class StonepadPaths {
 
   /// Returns the base directory where Stonepad stores all data.
   ///
-  /// Android: external app-specific storage
-  ///   (/storage/emulated/0/Android/data/io.stonepad.app/files/)
+  /// Android: internal app documents directory (reliable, no scoped storage issues)
   /// iOS: application documents directory
-  /// Linux (dev): $HOME/.local/share/stonepad/
+  /// Linux/Mac/Windows: $HOME/.local/share/stonepad/
   static Future<Directory> getBaseDirectory() async {
-    if (Platform.isAndroid) {
-      final dir = await getExternalStorageDirectory();
-      if (dir == null) {
-        throw StateError('External storage unavailable on Android');
-      }
-      return dir;
-    }
     if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
       final home = Platform.environment['HOME'] ?? '/tmp';
       final dir = Directory('$home/.local/share/stonepad');
@@ -30,6 +22,7 @@ class StonepadPaths {
       }
       return dir;
     }
+    // Android, iOS: use app-internal documents directory
     return getApplicationDocumentsDirectory();
   }
 

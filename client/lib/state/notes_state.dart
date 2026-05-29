@@ -94,6 +94,25 @@ class NotesState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Delete an entire folder and all notes within it.
+  Future<void> deleteFolder(String folderPath) async {
+    final prefix = '$folderPath/';
+    final toDelete = _manifest.notes.keys.where((p) => p.startsWith(prefix)).toList();
+    // Also delete the .folder marker
+    toDelete.add('$folderPath/.folder');
+    
+    for (final path in toDelete) {
+      await _storage.deleteNote(path);
+      _manifest.notes.remove(path);
+      if (_currentNotePath == path) {
+        _currentNotePath = null;
+        _currentNoteContent = null;
+      }
+    }
+    await _storage.saveManifest(_manifest);
+    notifyListeners();
+  }
+
   /// Mark a note as synced in the manifest.
   Future<void> markSynced(String path, String serverHash) async {
     final entry = _manifest.notes[path];

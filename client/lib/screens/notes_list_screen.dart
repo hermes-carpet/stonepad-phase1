@@ -272,8 +272,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
     }
   }
 
-  void _showFolderActions(String folderPath) {
-    showModalBottomSheet(
+  void _showFolderActions(String folderPath) async {
+    final notesState = context.read<NotesState>();
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
       builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
@@ -286,11 +287,36 @@ class _NotesListScreenState extends State<NotesListScreen> {
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
             title: const Text('Delete', style: TextStyle(color: Colors.red)),
-            onTap: () => Navigator.pop(ctx),
+            onTap: () => Navigator.pop(ctx, true),
           ),
         ],
       ),
     );
+
+    if (confirmed == true && mounted) {
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Delete Folder'),
+          content: Text('Delete "$folderPath" and all notes inside?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+      if (shouldDelete == true) {
+        await notesState.deleteFolder(folderPath);
+        // Navigate up if we're inside the deleted folder
+        if (_currentFolder.startsWith(folderPath)) {
+          _navigateUp();
+        }
+        if (mounted) setState(() {});
+      }
+    }
   }
 
   void _showNoteActions(NotesState notesState, String path) {
