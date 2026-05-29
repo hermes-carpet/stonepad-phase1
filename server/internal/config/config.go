@@ -24,6 +24,12 @@ type Config struct {
 	NativeAPIEnabled bool
 	MaxNoteSizeBytes int64
 	MaxNotesPerWorkspace int
+	RelayEnabled     bool
+	RelayEndpoint    string
+	RelayAccessKey   string
+	RelaySecretKey   string
+	RelayBucket      string
+	RelayPollInterval int
 }
 
 // Load reads all configuration from environment variables with sensible defaults.
@@ -44,6 +50,12 @@ func Load() *Config {
 		NativeAPIEnabled:      getEnvBool("NOTES_NATIVE_ENDPOINT_ENABLED", true),
 		MaxNoteSizeBytes:      getEnvInt64("NOTES_MAX_NOTE_SIZE_BYTES", 5*1024*1024),
 		MaxNotesPerWorkspace:  getEnvInt("NOTES_MAX_NOTES_PER_WORKSPACE", 100000),
+		RelayEnabled:          getEnvBool("NOTES_RELAY_ENABLED", false),
+		RelayEndpoint:         getEnv("NOTES_RELAY_ENDPOINT", ""),
+		RelayAccessKey:        getEnv("NOTES_RELAY_ACCESS_KEY", ""),
+		RelaySecretKey:        getEnv("NOTES_RELAY_SECRET_KEY", ""),
+		RelayBucket:           getEnv("NOTES_RELAY_BUCKET", ""),
+		RelayPollInterval:     getEnvInt("NOTES_RELAY_POLL_INTERVAL", 300),
 	}
 }
 

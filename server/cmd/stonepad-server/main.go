@@ -21,6 +21,7 @@ import (
 	"github.com/hermes-carpet/stonepad/server/internal/storage"
 	"github.com/hermes-carpet/stonepad/server/internal/sync"
 	"github.com/hermes-carpet/stonepad/server/internal/tmpfs"
+	"github.com/hermes-carpet/stonepad/server/internal/relay"
 )
 
 // version is set at build time via -ldflags.
@@ -114,6 +115,27 @@ func main() {
 		snap.Start()
 	}
 
+	// Relay (Cloudflare R2) polling
+	var relayPoller *relay.Poller
+	if cfg.RelayEnabled {
+		if cfg.RelayEndpoint == "" || cfg.RelayAccessKey == "" || cfg.RelaySecretKey == "" || cfg.RelayBucket == "" {
+			logger.Error("relay: NOTES_RELAY_ENDPOINT, ACCESS_KEY, SECRET_KEY, and BUCKET are required when enabled")
+			os.Exit(1)
+		}
+		pollInterval := time.Duration(cfg.RelayPollInterval) * time.Second
+		relayPoller = relay.New(
+			cfg.RelayEndpoint,
+			cfg.RelayAccessKey,
+			cfg.RelaySecretKey,
+			cfg.RelayBucket,
+			"auto",
+			pollInterval,
+			store,
+			logger,
+		)
+		relayPoller.Start()
+	}
+
 	// Set up authentication
 	authenticator := buildAuthenticator(cfg, metaStore, logger)
 
@@ -165,6 +187,11 @@ func main() {
 			logger.Error("tmpfs final snapshot failed", "error", err)
 		}
 		snap.Stop()
+	}
+
+	// Stop relay polling
+	if relayPoller != nil {
+		relayPoller.Stop()
 	}
 
 	logger.Info("server stopped")
