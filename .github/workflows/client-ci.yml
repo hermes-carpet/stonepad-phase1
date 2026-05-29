@@ -6,15 +6,15 @@ on:
     paths:
       - 'client/**'
       - '.github/workflows/client-ci.yml'
-  push:
-    tags:
-      - 'v*'
   pull_request:
     branches: [main]
     paths:
       - 'client/**'
       - '.github/workflows/client-ci.yml'
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 env:
   FLUTTER_VERSION: '3.44'
