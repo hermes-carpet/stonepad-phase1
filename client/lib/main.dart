@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'constants/strings.dart';
 import 'services/storage_service.dart';
+import 'services/lifecycle_service.dart';
 import 'state/notes_state.dart';
 import 'state/sync_state_notifier.dart';
 import 'state/settings_state.dart';
@@ -46,7 +47,7 @@ void main() async {
   ));
 }
 
-class StonepadApp extends StatelessWidget {
+class StonepadApp extends StatefulWidget {
   final StorageService storageService;
   final SettingsState settingsState;
 
@@ -57,12 +58,39 @@ class StonepadApp extends StatelessWidget {
   });
 
   @override
+  State<StonepadApp> createState() => _StonepadAppState();
+}
+
+class _StonepadAppState extends State<StonepadApp> {
+  late final NotesState _notesState;
+  late final SyncStateNotifier _syncState;
+  late final LifecycleService _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _notesState = NotesState(widget.storageService);
+    _syncState = SyncStateNotifier();
+    _lifecycle = LifecycleService(
+      notesState: _notesState,
+      syncState: _syncState,
+    );
+    _lifecycle.register();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => NotesState(storageService)),
-        ChangeNotifierProvider(create: (_) => SyncStateNotifier()),
-        ChangeNotifierProvider.value(value: settingsState),
+        ChangeNotifierProvider.value(value: _notesState),
+        ChangeNotifierProvider.value(value: _syncState),
+        ChangeNotifierProvider.value(value: widget.settingsState),
         ChangeNotifierProvider(create: (_) => ConnectivityState()),
       ],
       child: MaterialApp(
@@ -89,8 +117,7 @@ class StonepadApp extends StatelessWidget {
 
   Widget _buildHome() {
     // If the user hasn't configured anything, show onboarding.
-    // For v1, onboarding is shown if no settings endpoint is set and no notes exist.
-    if (!settingsState.settings.isConfigured) {
+    if (!widget.settingsState.settings.isConfigured) {
       return const OnboardingScreen();
     }
     return const NotesListScreen();
