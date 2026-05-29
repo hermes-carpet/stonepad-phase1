@@ -11,6 +11,7 @@ on:
     paths:
       - 'client/**'
       - '.github/workflows/client-ci.yml'
+  workflow_dispatch:
 
 env:
   FLUTTER_VERSION: '3.44'
