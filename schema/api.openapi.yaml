@@ -1,0 +1,258 @@
+openapi: "3.0.3"
+info:
+  title: Stonepad API
+  description: |
+    Native REST API for the Stonepad self-hosted markdown notes server.
+    See docs/api.md for full reference.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Default local server
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /manifest:
+    get:
+      summary: Get workspace manifest
+      operationId: getManifest
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Full manifest of all notes in workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manifest"
+
+  /notes/{path}:
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Relative note path (e.g. work/meetings/2026-04-22.md)
+    get:
+      summary: Get note content
+      operationId: getNote
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Raw markdown content
+          content:
+            text/markdown:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Create or update note
+      operationId: putNote
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: If-Match
+          in: header
+          schema:
+            type: string
+          description: Optional content hash for optimistic concurrency
+      requestBody:
+        required: true
+        content:
+          text/markdown:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Note saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteResponse"
+        "412":
+          $ref: "#/components/responses/PreconditionFailed"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+    delete:
+      summary: Delete note
+      operationId: deleteNote
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Note deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/login:
+    post:
+      summary: Login (users auth mode only)
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful, returns session token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      summary: Logout (users auth mode only)
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Manifest:
+      type: object
+      properties:
+        version:
+          type: integer
+          example: 1
+        workspace_id:
+          type: string
+          example: default
+        generated_at:
+          type: string
+          format: date-time
+        notes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManifestEntry"
+
+    ManifestEntry:
+      type: object
+      properties:
+        path:
+          type: string
+        content_hash:
+          type: string
+        size_bytes:
+          type: integer
+        modified_at:
+          type: string
+          format: date-time
+
+    NoteResponse:
+      type: object
+      properties:
+        path:
+          type: string
+        content_hash:
+          type: string
+        size_bytes:
+          type: integer
+        modified_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - not_found
+                - unauthorized
+                - forbidden
+                - bad_request
+                - conflict
+                - precondition_failed
+                - payload_too_large
+                - internal_error
+            message:
+              type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: not_found
+              message: "Note not found at path 'foo/bar.md'"
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: unauthorized
+              message: "Invalid or missing authentication"
+
+    PreconditionFailed:
+      description: Optimistic concurrency conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: precondition_failed
+              message: "Content hash mismatch"
+
+    PayloadTooLarge:
+      description: Note exceeds size limit
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: payload_too_large
+              message: "Note exceeds maximum size of 5242880 bytes"

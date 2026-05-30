@@ -99,6 +99,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Periodic VACUUM when DB exceeds 10 MB (§7.3)
+	if err := metaStore.VacuumIfNeeded(dbPath, config.VACUUMThresholdBytes); err != nil {
+		logger.Warn("vacuum check failed (non-fatal)", "error", err)
+	}
+
 	// tmpfs snapshot management
 	var snap *tmpfs.Snapshotter
 	if cfg.StorageMode == "tmpfs" {
@@ -192,6 +197,12 @@ func main() {
 	// Stop relay polling
 	if relayPoller != nil {
 		relayPoller.Stop()
+	}
+
+	// Hard deadline: exit 1 if shutdown exceeded 30s (§7.9)
+	if shutdownCtx.Err() != nil {
+		logger.Error("shutdown exceeded 30s hard deadline, forcing exit")
+		os.Exit(1)
 	}
 
 	logger.Info("server stopped")

@@ -207,3 +207,19 @@ func applyPragmas(db *sql.DB) error {
 	}
 	return nil
 }
+
+// VacuumIfNeeded runs PRAGMA incremental_vacuum if the database file
+// exceeds the given thresholdBytes. Called once per week on startup per §7.3.
+func (m *MetadataStore) VacuumIfNeeded(dbPath string, thresholdBytes int64) error {
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		return fmt.Errorf("stat db: %w", err)
+	}
+	if info.Size() < thresholdBytes {
+		return nil
+	}
+	if _, err := m.db.Exec("PRAGMA incremental_vacuum"); err != nil {
+		return fmt.Errorf("vacuum: %w", err)
+	}
+	return nil
+}

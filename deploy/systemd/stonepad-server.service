@@ -1,0 +1,33 @@
+[Unit]
+Description=Stonepad Server
+Documentation=https://github.com/hermes-carpet/stonepad
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# Pull the latest image and start the container
+ExecStartPre=-/usr/bin/docker stop stonepad-server
+ExecStartPre=-/usr/bin/docker rm stonepad-server
+ExecStartPre=/usr/bin/docker pull ghcr.io/hermes-carpet/stonepad-server:latest
+ExecStart=/usr/bin/docker run \
+    --name stonepad-server \
+    --rm \
+    -p 8080:8080 \
+    -v /opt/stonepad/data:/data \
+    -e NOTES_LISTEN_ADDR=":8080" \
+    -e NOTES_DATA_DIR="/data" \
+    -e NOTES_STORAGE_MODE="direct" \
+    -e NOTES_AUTH_MODE="token" \
+    -e NOTES_AUTH_TOKEN="${NOTES_AUTH_TOKEN:-change-me}" \
+    -e NOTES_LOG_LEVEL="info" \
+    ghcr.io/hermes-carpet/stonepad-server:latest
+
+ExecStop=/usr/bin/docker stop stonepad-server
+
+[Install]
+WantedBy=multi-user.target
