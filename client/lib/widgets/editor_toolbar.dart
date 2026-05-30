@@ -4,7 +4,7 @@
 library;
 import 'package:flutter/material.dart';
 
-class EditorToolbar extends StatelessWidget {
+class EditorToolbar extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onChanged;
 
@@ -13,6 +13,13 @@ class EditorToolbar extends StatelessWidget {
     required this.controller,
     required this.onChanged,
   });
+
+  @override
+  State<EditorToolbar> createState() => _EditorToolbarState();
+}
+
+class _EditorToolbarState extends State<EditorToolbar> {
+  TextSelection _capturedSelection = const TextSelection.collapsed(offset: -1);
 
   static const _formatItems = <_FormatItem>[
     _FormatItem('bold', 'Bold (**text**)', Icons.format_bold),
@@ -37,25 +44,26 @@ class EditorToolbar extends StatelessWidget {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.format_bold),
       onSelected: (value) => _insertFormatting(value),
+      onOpened: () {
+        // Capture selection before the popup steals focus
+        _capturedSelection = widget.controller.selection;
+      },
       itemBuilder: (context) => _formatItems
           .map((item) => PopupMenuItem(
                 value: item.type,
-                child: Row(
-                  children: [
-                    Icon(item.icon, size: 20),
-                    const SizedBox(width: 12),
-                    Text(item.label),
-                  ],
-                ),
+                child: Text(item.label),
               ))
           .toList(),
     );
   }
 
   void _insertFormatting(String type) {
-    final text = controller.text;
-    final start = controller.selection.start;
-    final end = controller.selection.end;
+    final text = widget.controller.text;
+    final selection = _capturedSelection.isValid && _capturedSelection.start >= 0
+        ? _capturedSelection
+        : TextSelection.collapsed(offset: text.length);
+    final start = selection.start;
+    final end = selection.end;
     final selected = text.substring(start, end);
 
     String replacement;
@@ -113,11 +121,11 @@ class EditorToolbar extends StatelessWidget {
 
     final newText = text.substring(0, start) + replacement + text.substring(end);
     final newPos = start + replacement.length - (selected.isNotEmpty ? 0 : cursorOffset);
-    controller.text = newText;
-    controller.selection = TextSelection.collapsed(
-      offset: newPos.clamp(0, controller.text.length),
+    widget.controller.text = newText;
+    widget.controller.selection = TextSelection.collapsed(
+      offset: newPos.clamp(0, widget.controller.text.length),
     );
-    onChanged();
+    widget.onChanged();
   }
 }
 
