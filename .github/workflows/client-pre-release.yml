@@ -27,7 +27,22 @@ jobs:
           echo "ver=$VER" >> $GITHUB_OUTPUT
           echo "pubspec version: $VER"
 
+      - name: Check if pre-release version
+        id: check
+        run: |
+          VER="${{ steps.version.outputs.ver }}"
+          PATCH=$(echo "$VER" | cut -d. -f3)
+          PATCH="${PATCH:-0}"
+          if [ "$PATCH" != "0" ]; then
+            echo "pre_release=true" >> $GITHUB_OUTPUT
+            echo "Pre-release version ($VER, patch=$PATCH) — will publish"
+          else
+            echo "pre_release=false" >> $GITHUB_OUTPUT
+            echo "Stable version ($VER, patch=0) — skipping pre-release"
+          fi
+
       - name: Compute tag
+        if: steps.check.outputs.pre_release == 'true'
         id: tag
         run: |
           TAG="v${{ steps.version.outputs.ver }}"
@@ -35,6 +50,7 @@ jobs:
           echo "tag=$TAG"
 
       - name: Download APK from CI
+        if: steps.check.outputs.pre_release == 'true'
         uses: dawidd6/action-download-artifact@v4
         with:
           workflow: client-ci.yml
@@ -43,6 +59,7 @@ jobs:
           path: /tmp/apk
 
       - name: Verify APK
+        if: steps.check.outputs.pre_release == 'true'
         run: |
           APK=$(ls /tmp/apk/stonepad-*.apk 2>/dev/null | head -1)
           echo "=== APK verification ==="
@@ -68,6 +85,7 @@ jobs:
           echo "apk_path=$APK" >> $GITHUB_ENV
 
       - name: Publish pre-release
+        if: steps.check.outputs.pre_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
