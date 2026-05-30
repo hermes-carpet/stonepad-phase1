@@ -40,14 +40,14 @@ jobs:
         id: check
         run: |
           VER="${{ steps.version.outputs.version }}"
-          MAJOR=$(echo "$VER" | cut -d. -f1)
-          MINOR=$(echo "$VER" | cut -d. -f2)
-          if [ "$MAJOR" -eq 0 ] && [ "$MINOR" -lt 5 ]; then
+          PATCH=$(echo "$VER" | cut -d. -f3)
+          PATCH="${PATCH:-0}"
+          if [ "$PATCH" != "0" ]; then
             echo "pre_release=true" >> $GITHUB_OUTPUT
-            echo "Pre-release version ($VER) — will publish"
+            echo "Pre-release version ($VER, patch=$PATCH) — will publish"
           else
             echo "pre_release=false" >> $GITHUB_OUTPUT
-            echo "Stable version ($VER) — skipping pre-release"
+            echo "Stable version ($VER, patch=0) — skipping pre-release"
           fi
 
       - name: Compute tag
