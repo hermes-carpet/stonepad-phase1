@@ -22,6 +22,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
 cd server
+# Bump PATCH version before committing changes (docs/releases.md)
+echo "0.0.2" > VERSION   # example bump from 0.0.1
 go mod download
 go test ./...           # run all tests
 CGO_ENABLED=0 go build -o stonepad-server ./cmd/stonepad-server/

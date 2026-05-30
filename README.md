@@ -77,6 +77,7 @@ These are explicitly out of scope for v1. See [docs/architecture.md](docs/archit
 | Document | Description |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Architecture overview, design philosophy, affordances |
+| [docs/releases.md](docs/releases.md) | Versioning scheme, pre-releases, stable releases, Docker tags |
 | [docs/configuration.md](docs/configuration.md) | All environment variables and defaults |
 | [docs/deployment/tailscale.md](docs/deployment/tailscale.md) | Tailscale deployment (recommended) |
 | [docs/deployment/cf-tunnel.md](docs/deployment/cf-tunnel.md) | Cloudflare Tunnel deployment |
